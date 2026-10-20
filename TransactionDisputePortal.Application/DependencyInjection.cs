@@ -2,6 +2,8 @@
 using FluentValidation;
 using System.Reflection;
 using TransactionDisputePortal.Application.Common.Behaviors;
+using TransactionDisputePortal.Application.Common.Interfaces;
+using TransactionDisputePortal.Application.Common.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace TransactionDisputePortal.Application;
@@ -14,6 +16,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        services.AddScoped<ICurrentCustomerService, CurrentCustomerService>();
         return services;
     }
 }

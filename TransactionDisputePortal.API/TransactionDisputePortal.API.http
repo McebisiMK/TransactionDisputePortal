@@ -1,3 +1,16 @@
 @TransactionDisputePortal.API_HostAddress = http://localhost:5000
+@token =
+
+###
+
+GET {{TransactionDisputePortal.API_HostAddress}}/api/v1/transactions?pageNumber=1&pageSize=20&status=Posted&search=Woolworths
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+GET {{TransactionDisputePortal.API_HostAddress}}/api/v1/transactions/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+Accept: application/json
 
 ###

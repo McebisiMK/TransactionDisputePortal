@@ -75,3 +75,12 @@ Test users (password `Password1!`):
 The Keycloak users have fixed ids, and the seeder creates a matching customer for each customer user (linked by the token's `sub` claim) with about five months of transactions. The most recent ones are `Pending`, the rest `Posted`. Seeding only adds customers that don't exist yet, so it is safe on every start.
 
 Run the API, open http://localhost:5000/swagger and use **Authorize** to sign in.
+
+## API
+
+All endpoints are under `/api/v1`. Dates in responses are UTC. The `fromDate` and `toDate` filters are calendar days in South African time (Africa/Johannesburg).
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| `GET` | `/transactions` | customer | The signed-in customer's transactions, newest first. Filters: `fromDate`, `toDate` (inclusive, `yyyy-MM-dd`), `search` (merchant or reference), `status` (`Pending`/`Posted`), `accountId`. Paging: `pageNumber`, `pageSize` (max 100). |
+| `GET` | `/transactions/{id}` | customer | One of the customer's transactions. Another customer's transaction returns `404`. |
