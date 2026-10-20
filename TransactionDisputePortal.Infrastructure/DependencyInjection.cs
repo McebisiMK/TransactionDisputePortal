@@ -2,6 +2,7 @@ using TransactionDisputePortal.Application.Common.Interfaces;
 using TransactionDisputePortal.Infrastructure.Persistence;
 using TransactionDisputePortal.Infrastructure.Persistence.DataSeeding;
 using TransactionDisputePortal.Infrastructure.Persistence.Interceptors;
+using TransactionDisputePortal.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("Default")!;
 
         services.AddScoped<AuditableEntitySaveChangesInterceptor>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
         {

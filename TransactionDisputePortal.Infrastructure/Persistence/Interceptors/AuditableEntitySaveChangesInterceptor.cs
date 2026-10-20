@@ -42,6 +42,8 @@ public class AuditableEntitySaveChangesInterceptor(ICurrentUserService currentUs
                 case EntityState.Modified:
                     entry.Entity.UpdatedDate = DateTime.UtcNow;
                     entry.Entity.UpdatedBy = username;
+                    entry.Property(entity => entity.CreatedBy).IsModified = false;
+                    entry.Property(entity => entity.CreatedDate).IsModified = false;
                     break;
             }
         }

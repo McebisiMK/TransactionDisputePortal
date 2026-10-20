@@ -14,6 +14,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="7.2.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageReference Include="NSubstitute" Version="6.2.0" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17">
@@ -37,6 +38,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TransactionDisputePortal.Application\TransactionDisputePortal.Application.csproj" />
     <ProjectReference Include="..\TransactionDisputePortal.Domain\TransactionDisputePortal.Domain.csproj" />
+    <ProjectReference Include="..\TransactionDisputePortal.Infrastructure\TransactionDisputePortal.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

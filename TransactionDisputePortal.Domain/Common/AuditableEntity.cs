@@ -1,6 +1,6 @@
 namespace TransactionDisputePortal.Domain.Common;
 
-public abstract class AuditableEntity
+public abstract class AuditableEntity : BaseEntity
 {
     public string CreatedBy { get; set; } = "System";
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;

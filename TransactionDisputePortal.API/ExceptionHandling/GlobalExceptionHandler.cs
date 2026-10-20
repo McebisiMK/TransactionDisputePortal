@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using TransactionDisputePortal.API.Models;
 using TransactionDisputePortal.Application.Common.Exceptions;
+using TransactionDisputePortal.Domain.Exceptions;
 using ValidationException = TransactionDisputePortal.Application.Common.Exceptions.ValidationException;
 
 namespace TransactionDisputePortal.API.ExceptionHandling;
@@ -29,6 +30,7 @@ public class GlobalExceptionHandler(IProblemDetailsService problemDetailsService
             NotFoundException ex => CreateProblem(StatusCodes.Status404NotFound, "Not Found", ex.Message, "https://tools.ietf.org/html/rfc9110#section-15.5.5"),
             ForbiddenAccessException ex => CreateProblem(StatusCodes.Status403Forbidden, "Forbidden", ex.Message, "https://tools.ietf.org/html/rfc9110#section-15.5.4"),
             ConcurrencyException ex => CreateProblem(StatusCodes.Status409Conflict, "Conflict", ex.Message, "https://tools.ietf.org/html/rfc9110#section-15.5.10"),
+            DomainException ex => CreateProblem(StatusCodes.Status409Conflict, "Business Rule Violation", ex.Message, "https://tools.ietf.org/html/rfc9110#section-15.5.10"),
             _ => CreateProblem(StatusCodes.Status500InternalServerError, "Internal Server Error", environment.IsDevelopment() ? exception.Message : "An unexpected error occurred.", "https://tools.ietf.org/html/rfc9110#section-15.6.1")
         };
 
@@ -78,6 +80,9 @@ public class GlobalExceptionHandler(IProblemDetailsService problemDetailsService
                 break;
             case NotFoundException:
                 logger.LogInformation("Resource not found on {Path}: {Message}", path, exception.Message);
+                break;
+            case DomainException:
+                logger.LogInformation("Business rule violated on {Path}: {Message}", path, exception.Message);
                 break;
             case ForbiddenAccessException or ConcurrencyException:
                 logger.LogWarning("Request to {Path} failed with {StatusCode}: {Message}", path, status, exception.Message);
