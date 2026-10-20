@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 using TransactionDisputePortal.API.ExceptionHandling;
 using TransactionDisputePortal.API.Extensions;
 using TransactionDisputePortal.API.Helpers;
@@ -23,7 +24,9 @@ public static class DependencyInjection
         services.RegisterCors(configuration);
         services.RegisterAuthentication(configuration, environment);
         services.RegisterAuthorization();
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+            .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = InvalidModelStateResponse.Create);
         services.AddEndpointsApiExplorer();
         services.RegisterSwagger(configuration);
 
