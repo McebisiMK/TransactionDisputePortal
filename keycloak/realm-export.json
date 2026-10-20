@@ -109,6 +109,19 @@
       "realmRoles": ["customer"]
     },
     {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "username": "test.customer2",
+      "enabled": true,
+      "email": "test.customer2@disputeportal.local",
+      "emailVerified": true,
+      "firstName": "Second",
+      "lastName": "Customer",
+      "credentials": [
+        { "type": "password", "value": "Password1!", "temporary": false }
+      ],
+      "realmRoles": ["customer"]
+    },
+    {
       "id": "22222222-2222-2222-2222-222222222222",
       "username": "test.agent",
       "enabled": true,

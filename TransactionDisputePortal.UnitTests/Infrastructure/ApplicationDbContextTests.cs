@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using TransactionDisputePortal.Application.Common.Interfaces;
 using TransactionDisputePortal.Domain.Common;
 using TransactionDisputePortal.UnitTests.TestSupport;
@@ -120,6 +121,27 @@ public class ApplicationDbContextTests
 
         //------------------------------------- Assert  ------------------------------------------------------
         entity.CreatedBy.Should().Be("System");
+    }
+
+    [Test]
+    public async Task SaveChangesAsync_Given_Dates_Are_Read_Back_From_The_Database_Should_Be_Utc()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        using var context = CreateApplicationDbContext();
+
+        var entity = new TestEntity { Name = "first" };
+        context.TestEntities.Add(entity);
+        await context.SaveChangesAsync();
+        entity.Name = "renamed";
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await context.TestEntities.SingleAsync(testEntity => testEntity.Id == entity.Id);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.CreatedDate.Kind.Should().Be(DateTimeKind.Utc);
+        actual.UpdatedDate!.Value.Kind.Should().Be(DateTimeKind.Utc);
     }
 
     private static TestDbContext CreateApplicationDbContext(IDomainEventDispatcher? domainEventDispatcher = null, ICurrentUserService? currentUserService = null)

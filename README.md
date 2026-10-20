@@ -66,9 +66,12 @@ docker compose up -d keycloak
 
 Test users (password `Password1!`):
 
-| Username | Role |
-|---|---|
-| `test.customer` | customer |
-| `test.agent` | agent |
+| Username | Role | Seed data |
+|---|---|---|
+| `test.customer` | customer | Cheque and credit card account, 50 transactions |
+| `test.customer2` | customer | Cheque and credit card account, 50 transactions |
+| `test.agent` | agent | |
+
+The Keycloak users have fixed ids, and the seeder creates a matching customer for each customer user (linked by the token's `sub` claim) with about five months of transactions. The most recent ones are `Pending`, the rest `Posted`. Seeding only adds customers that don't exist yet, so it is safe on every start.
 
 Run the API, open http://localhost:5000/swagger and use **Authorize** to sign in.
