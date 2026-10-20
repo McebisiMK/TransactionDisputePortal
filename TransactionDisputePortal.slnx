@@ -3,5 +3,6 @@
   <Project Path="TransactionDisputePortal.Application/TransactionDisputePortal.Application.csproj" Id="0eadd166-e433-4ba1-aa24-3a8318af5c2d" />
   <Project Path="TransactionDisputePortal.Domain/TransactionDisputePortal.Domain.csproj" Id="8f670eba-3ff3-4423-bf32-1e16f7befa99" />
   <Project Path="TransactionDisputePortal.Infrastructure/TransactionDisputePortal.Infrastructure.csproj" Id="9487a008-90bd-478a-8574-c8f07c1a467e" />
+  <Project Path="TransactionDisputePortal.IntegrationTests/TransactionDisputePortal.IntegrationTests.csproj" />
   <Project Path="TransactionDisputePortal.UnitTests/TransactionDisputePortal.UnitTests.csproj" />
 </Solution>
