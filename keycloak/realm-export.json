@@ -1,0 +1,125 @@
+{
+  "realm": "transaction-dispute-portal",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "customer", "description": "Can view own transactions and raise disputes" },
+      { "name": "agent", "description": "Can review and resolve customer disputes" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "dispute-portal-api",
+      "name": "Transaction Dispute Portal API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false
+    },
+    {
+      "clientId": "dispute-portal-swagger",
+      "name": "Transaction Dispute Portal Swagger UI",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5000/swagger/oauth2-redirect.html",
+        "https://localhost:5001/swagger/oauth2-redirect.html"
+      ],
+      "webOrigins": [
+        "http://localhost:5000",
+        "https://localhost:5001"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-dispute-portal-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dispute-portal-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "dispute-portal-web",
+      "name": "Transaction Dispute Portal Web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "http://localhost:3000",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-dispute-portal-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dispute-portal-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "username": "test.customer",
+      "enabled": true,
+      "email": "test.customer@disputeportal.local",
+      "emailVerified": true,
+      "firstName": "Test",
+      "lastName": "Customer",
+      "credentials": [
+        { "type": "password", "value": "Password1!", "temporary": false }
+      ],
+      "realmRoles": ["customer"]
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "username": "test.agent",
+      "enabled": true,
+      "email": "test.agent@disputeportal.local",
+      "emailVerified": true,
+      "firstName": "Test",
+      "lastName": "Agent",
+      "credentials": [
+        { "type": "password", "value": "Password1!", "temporary": false }
+      ],
+      "realmRoles": ["agent"]
+    }
+  ]
+}
