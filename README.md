@@ -23,7 +23,7 @@ docker compose up -d --build
 
 The SQL Server `sa` password defaults to `Dispute_Portal_2026!` and can be overridden by setting `MSSQL_SA_PASSWORD` in the environment or a `.env` file next to `docker-compose.yml`.
 
-Stop everything with `docker compose down`. Add `-v` to also delete the database volume.
+Stop everything with `docker compose down`. Add `-v` to also delete the SQL Server and Keycloak volumes.
 
 ## Running locally
 
@@ -46,7 +46,15 @@ dotnet ef database update --project TransactionDisputePortal.Infrastructure --st
 
 ## Authentication
 
-Authentication is handled by Keycloak. The realm is imported from `keycloak/realm-export.json` on every start.
+Authentication is handled by Keycloak. The realm is imported from `keycloak/realm-export.json` the first time Keycloak starts. Keycloak's data, including its token signing keys, is kept in the `keycloak-data` volume, so tokens stay valid across Keycloak restarts.
+
+Keycloak skips a realm that already exists, so later changes to `realm-export.json` are not applied automatically. To re-import it, remove the volume and start Keycloak again:
+
+```
+docker compose rm -sf keycloak
+docker volume rm transactiondisputeportal_keycloak-data
+docker compose up -d keycloak
+```
 
 | Item | Value |
 |---|---|

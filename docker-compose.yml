@@ -26,6 +26,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      - keycloak-data:/opt/keycloak/data
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
 
   api:
@@ -46,3 +47,4 @@ services:
 
 volumes:
   sqlserver-data:
+  keycloak-data:
