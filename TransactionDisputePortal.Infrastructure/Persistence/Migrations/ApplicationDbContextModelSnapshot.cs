@@ -22,6 +22,8 @@ namespace TransactionDisputePortal.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence("DisputeReferenceNumbers");
+
             modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Account", b =>
                 {
                     b.Property<Guid>("Id")
@@ -105,6 +107,114 @@ namespace TransactionDisputePortal.Infrastructure.Persistence.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Dispute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Reference")
+                        .IsUnique();
+
+                    b.HasIndex("TransactionId");
+
+                    b.HasIndex("CustomerId", "Status");
+
+                    b.HasIndex(new[] { "TransactionId" }, "IX_Disputes_TransactionId_Open")
+                        .IsUnique()
+                        .HasFilter("[Status] IN ('Submitted', 'UnderReview')");
+
+                    b.ToTable("Disputes");
+                });
+
+            modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.DisputeStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("DisputeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisputeId", "ChangedAt");
+
+                    b.ToTable("DisputeStatusHistory", (string)null);
+                });
+
             modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -183,6 +293,34 @@ namespace TransactionDisputePortal.Infrastructure.Persistence.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Dispute", b =>
+                {
+                    b.HasOne("TransactionDisputePortal.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TransactionDisputePortal.Domain.Entities.Transaction", "Transaction")
+                        .WithMany("Disputes")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.DisputeStatusHistory", b =>
+                {
+                    b.HasOne("TransactionDisputePortal.Domain.Entities.Dispute", null)
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("DisputeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Transaction", b =>
                 {
                     b.HasOne("TransactionDisputePortal.Domain.Entities.Account", "Account")
@@ -202,6 +340,16 @@ namespace TransactionDisputePortal.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("Accounts");
+                });
+
+            modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Dispute", b =>
+                {
+                    b.Navigation("StatusHistory");
+                });
+
+            modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.Transaction", b =>
+                {
+                    b.Navigation("Disputes");
                 });
 #pragma warning restore 612, 618
         }

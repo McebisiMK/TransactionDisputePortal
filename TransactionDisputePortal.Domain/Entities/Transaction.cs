@@ -15,4 +15,6 @@ public class Transaction : AuditableEntity
     public TransactionCategory Category { get; set; }
     public DateTime TransactionDate { get; set; }
     public TransactionStatus Status { get; set; }
+
+    public List<Dispute> Disputes { get; set; } = [];
 }

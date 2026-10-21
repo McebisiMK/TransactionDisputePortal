@@ -1,17 +1,24 @@
 using System.Reflection;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using TransactionDisputePortal.Application.Common.Exceptions;
 using TransactionDisputePortal.Application.Common.Interfaces;
 using TransactionDisputePortal.Domain.Common;
 using TransactionDisputePortal.Domain.Entities;
+using TransactionDisputePortal.Infrastructure.Persistence.Configurations;
 using TransactionDisputePortal.Infrastructure.Persistence.Converters;
 
 namespace TransactionDisputePortal.Infrastructure.Persistence;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IDomainEventDispatcher domainEventDispatcher) : DbContext(options), IApplicationDbContext
 {
+    private const int UniqueIndexViolation = 2601;
+    private const int UniqueConstraintViolation = 2627;
+
     private readonly IDomainEventDispatcher domainEventDispatcher = domainEventDispatcher;
 
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
 
@@ -28,6 +35,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
+        modelBuilder.HasSequence<long>(DisputeConfiguration.ReferenceSequence);
+
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(type => typeof(BaseEntity).IsAssignableFrom(type.ClrType)).ToList())
         {
             modelBuilder.Entity(entityType.ClrType).Ignore(nameof(BaseEntity.DomainEvents));
@@ -42,7 +51,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var result = await base.SaveChangesAsync(cancellationToken);
+        int result;
+
+        try
+        {
+            result = await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: UniqueIndexViolation or UniqueConstraintViolation })
+        {
+            throw new DuplicateRecordException(exception);
+        }
 
         await DispatchDomainEventsAsync(cancellationToken);
 

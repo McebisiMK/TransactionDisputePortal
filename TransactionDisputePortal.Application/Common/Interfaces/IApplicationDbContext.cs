@@ -6,6 +6,7 @@ namespace TransactionDisputePortal.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<Account> Accounts { get; }
+    DbSet<Dispute> Disputes { get; }
     DbSet<Customer> Customers { get; }
     DbSet<Transaction> Transactions { get; }
 
