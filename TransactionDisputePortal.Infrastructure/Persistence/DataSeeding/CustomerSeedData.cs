@@ -9,7 +9,7 @@ internal static class CustomerSeedData
     private const int HistoryDays = 150;
     private const int PendingDays = 3;
 
-    private sealed record SeedCustomer(int Number, Guid ExternalUserId, string FullName, string Email, SeedAccount[] Accounts);
+    private sealed record SeedCustomer(int Number, Guid ExternalUserId, string Username, string FullName, string Email, SeedAccount[] Accounts);
 
     private sealed record SeedAccount(string AccountNumber, AccountType Type, int TransactionCount);
 
@@ -17,12 +17,12 @@ internal static class CustomerSeedData
 
     private static readonly SeedCustomer[] Customers =
     [
-        new(1, Guid.Parse("11111111-1111-1111-1111-111111111111"), "Test Customer", "test.customer@disputeportal.local",
+        new(1, Guid.Parse("11111111-1111-1111-1111-111111111111"), "test.customer", "Test Customer", "test.customer@disputeportal.local",
         [
             new("******4521", AccountType.Cheque, 30),
             new("******8834", AccountType.CreditCard, 20)
         ]),
-        new(2, Guid.Parse("33333333-3333-3333-3333-333333333333"), "Second Customer", "test.customer2@disputeportal.local",
+        new(2, Guid.Parse("33333333-3333-3333-3333-333333333333"), "test.customer2", "Second Customer", "test.customer2@disputeportal.local",
         [
             new("******7310", AccountType.Cheque, 25),
             new("******6092", AccountType.CreditCard, 25)
@@ -54,6 +54,8 @@ internal static class CustomerSeedData
     ];
 
     public static IEnumerable<Guid> ExternalUserIds => Customers.Select(customer => customer.ExternalUserId);
+
+    public static string GetUsername(Guid externalUserId) => Customers.Single(customer => customer.ExternalUserId == externalUserId).Username;
 
     public static Customer CreateCustomer(Guid externalUserId, DateTime utcNow)
     {

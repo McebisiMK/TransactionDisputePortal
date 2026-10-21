@@ -72,7 +72,7 @@ Test users (password `Password1!`):
 | `test.customer2` | customer | Cheque and credit card account, 50 transactions |
 | `test.agent` | agent | |
 
-The Keycloak users have fixed ids, and the seeder creates a matching customer for each customer user (linked by the token's `sub` claim) with about five months of transactions. The most recent ones are `Pending`, the rest `Posted`. Seeding only adds customers that don't exist yet, so it is safe on every start.
+The Keycloak users have fixed ids, and the seeder creates a matching customer for each customer user (linked by the token's `sub` claim) with about five months of transactions. The most recent ones are `Pending`, the rest `Posted`. Each customer also gets five disputes, one in each status (`Submitted`, `UnderReview`, `Approved`, `Rejected`, `Withdrawn`), with a matching status timeline. Seeding only adds customers that don't exist yet, and disputes only for seeded customers that have none, so it is safe on every start.
 
 Run the API, open http://localhost:5000/swagger and use **Authorize** to sign in.
 

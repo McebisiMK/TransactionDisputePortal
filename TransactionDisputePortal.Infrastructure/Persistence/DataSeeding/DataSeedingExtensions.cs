@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TransactionDisputePortal.Application.Common.Interfaces;
 
 namespace TransactionDisputePortal.Infrastructure.Persistence.DataSeeding;
 
@@ -17,8 +18,9 @@ public static class DataSeedingExtensions
 
         var context = provider.GetRequiredService<ApplicationDbContext>();
         var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("DataSeeding");
+        var disputeReferenceGenerator = provider.GetRequiredService<IDisputeReferenceGenerator>();
 
         await context.Database.MigrateAsync(cancellationToken);
-        await ApplicationDbContextSeeder.SeedAsync(context, logger, cancellationToken);
+        await ApplicationDbContextSeeder.SeedAsync(context, disputeReferenceGenerator, logger, cancellationToken);
     }
 }
