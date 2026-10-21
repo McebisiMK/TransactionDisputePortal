@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using AutoMapper;
 using TransactionDisputePortal.Application.Common.Mappings;
 using TransactionDisputePortal.Domain.Entities;
@@ -27,15 +28,18 @@ public record TransactionDTO : IMapFrom<Transaction>
     public bool IsDisputable { get; init; }
     public Guid? OpenDisputeId { get; init; }
 
+    // Shared with DisputeTransactionDTO so a full account number never leaves the API.
+    public static readonly Expression<Func<Transaction, string>> MaskedAccountNumber = transaction =>
+        transaction.Account.AccountNumber.Length > VisibleAccountNumberDigits
+            ? AccountNumberMask + transaction.Account.AccountNumber.Substring(transaction.Account.AccountNumber.Length - VisibleAccountNumberDigits, VisibleAccountNumberDigits)
+            : AccountNumberMask;
+
     public void Mapping(Profile profile)
     {
         DateTime disputeWindowStart = DateTime.MaxValue;
 
         profile.CreateMap<Transaction, TransactionDTO>()
-            .ForMember(dto => dto.AccountNumber, options => options.MapFrom(transaction =>
-                transaction.Account.AccountNumber.Length > VisibleAccountNumberDigits
-                    ? AccountNumberMask + transaction.Account.AccountNumber.Substring(transaction.Account.AccountNumber.Length - VisibleAccountNumberDigits, VisibleAccountNumberDigits)
-                    : AccountNumberMask))
+            .ForMember(dto => dto.AccountNumber, options => options.MapFrom(MaskedAccountNumber))
             .ForMember(dto => dto.AccountType, options => options.MapFrom(transaction => transaction.Account.Type))
             .ForMember(dto => dto.OpenDisputeId, options => options.MapFrom(transaction => transaction.Disputes
                 .Where(dispute => dispute.Status == DisputeStatus.Submitted || dispute.Status == DisputeStatus.UnderReview)

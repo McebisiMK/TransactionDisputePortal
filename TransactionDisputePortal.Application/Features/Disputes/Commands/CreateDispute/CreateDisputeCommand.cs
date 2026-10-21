@@ -33,6 +33,7 @@ public record CreateDisputeCommand : IRequest<DisputeDTO>
         {
             var customerId = await currentCustomerService.GetCustomerIdAsync(cancellationToken);
             var transaction = await applicationDbContext.Transactions
+                                    .Include(transaction => transaction.Account)
                                     .FirstAsync(transaction => transaction.Id == request.TransactionId && transaction.Account.CustomerId == customerId, cancellationToken);
 
             var hasOpenDispute = await applicationDbContext.Disputes

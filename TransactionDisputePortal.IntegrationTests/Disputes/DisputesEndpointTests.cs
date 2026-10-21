@@ -172,6 +172,38 @@ public class DisputesEndpointTests
         actual.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Test]
+    public async Task Get_Dispute_By_Id_Should_Return_The_Transaction_Summary_And_Timeline()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var transaction = await SeedTransaction(customer);
+        using var client = factory.CreateClientFor(customer.ExternalUserId);
+        var disputeId = await CreateDispute(client, transaction);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await client.GetAsync($"/api/v1/disputes/{disputeId}");
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        using var body = await ReadJson(actual);
+        var transactionSummary = body.RootElement.GetProperty("transaction");
+        transactionSummary.GetProperty("reference").GetString().Should().Be(transaction.Reference);
+        transactionSummary.GetProperty("accountNumber").GetString().Should().Be("******4444");
+
+        var entry = body.RootElement.GetProperty("timeline").EnumerateArray().Should().ContainSingle().Subject;
+        entry.GetProperty("fromStatus").ValueKind.Should().Be(JsonValueKind.Null);
+        entry.GetProperty("toStatus").GetString().Should().Be("Submitted");
+    }
+
+    private static async Task<Guid> CreateDispute(HttpClient client, Transaction transaction)
+    {
+        using var response = await client.PostAsJsonAsync("/api/v1/disputes", new { transactionId = transaction.Id, reason = "DuplicateCharge" });
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var body = await ReadJson(response);
+
+        return body.RootElement.GetProperty("id").GetGuid();
+    }
+
     private static Customer CreateCustomer(string fullName)
     {
         var customer = new Customer
