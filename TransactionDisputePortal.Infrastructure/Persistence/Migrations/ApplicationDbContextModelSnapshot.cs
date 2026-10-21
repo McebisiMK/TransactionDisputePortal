@@ -181,7 +181,6 @@ namespace TransactionDisputePortal.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TransactionDisputePortal.Domain.Entities.DisputeStatusHistory", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("ChangedAt")

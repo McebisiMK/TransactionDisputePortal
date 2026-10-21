@@ -12,6 +12,9 @@ public class DisputeStatusHistoryConfiguration : IEntityTypeConfiguration<Disput
 
         builder.HasKey(history => history.Id);
 
+        builder.Property(history => history.Id)
+            .ValueGeneratedNever();
+
         builder.Property(history => history.FromStatus)
             .HasConversion<string>()
             .HasMaxLength(20);
