@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TransactionDisputePortal.Application.Common.Exceptions;
 using TransactionDisputePortal.Application.Common.Interfaces;
 using TransactionDisputePortal.Domain.Common;
 using TransactionDisputePortal.UnitTests.TestSupport;
@@ -142,6 +143,28 @@ public class ApplicationDbContextTests
         //------------------------------------- Assert  ------------------------------------------------------
         actual.CreatedDate.Kind.Should().Be(DateTimeKind.Utc);
         actual.UpdatedDate!.Value.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Test]
+    public async Task SaveChangesAsync_Given_The_Row_Was_Changed_By_Another_Request_Should_Throw_Concurrency_Exception()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var utcNow = new DateTime(2026, 9, 15, 10, 0, 0, DateTimeKind.Utc);
+        var customer = TestData.CreateCustomer();
+        var dispute = customer.AddAccount().AddTransaction(utcNow.AddDays(-5)).AddDispute(utcNow.AddDays(-2));
+
+        using var context = CreateApplicationDbContext();
+        context.Customers.Add(customer);
+        await context.SaveChangesAsync();
+
+        dispute.Withdraw(null, "test.customer", utcNow);
+        context.Entry(dispute).Property(saved => saved.RowVersion).OriginalValue = [1, 2, 3];
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var act = () => context.SaveChangesAsync();
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        await act.Should().ThrowAsync<ConcurrencyException>().WithInnerException(typeof(DbUpdateConcurrencyException));
     }
 
     private static TestDbContext CreateApplicationDbContext(IDomainEventDispatcher? domainEventDispatcher = null, ICurrentUserService? currentUserService = null)

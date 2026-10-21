@@ -61,6 +61,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             throw new DuplicateRecordException(exception);
         }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new ConcurrencyException(exception);
+        }
 
         await DispatchDomainEventsAsync(cancellationToken);
 
