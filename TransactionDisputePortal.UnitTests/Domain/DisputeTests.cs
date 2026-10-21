@@ -133,6 +133,165 @@ public class DisputeTests
         actual.Description.Should().BeNull();
     }
 
+    [Test]
+    public void StartReview_Given_A_Submitted_Dispute_Should_Move_It_Under_Review_And_Record_The_Change()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.StartReview("  Requested records from the merchant.  ", "test.agent", UtcNow.AddDays(1));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.Status.Should().Be(DisputeStatus.UnderReview);
+        dispute.IsOpen.Should().BeTrue();
+        dispute.StatusHistory.Last().Should().BeEquivalentTo(new
+        {
+            DisputeId = dispute.Id,
+            FromStatus = (DisputeStatus?)DisputeStatus.Submitted,
+            ToStatus = DisputeStatus.UnderReview,
+            Comment = "Requested records from the merchant.",
+            ChangedBy = "test.agent",
+            ChangedAt = UtcNow.AddDays(1)
+        });
+    }
+
+    [TestCase(DisputeStatus.UnderReview)]
+    [TestCase(DisputeStatus.Approved)]
+    [TestCase(DisputeStatus.Withdrawn)]
+    public void StartReview_Given_A_Dispute_That_Is_Not_Submitted_Should_Throw_Domain_Exception(DisputeStatus status)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute(status);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var act = () => dispute.StartReview(null, "test.agent", UtcNow.AddDays(10));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        act.Should().Throw<DomainException>().WithMessage($"Dispute {dispute.Reference} is {status} and can only be reviewed while it is Submitted.");
+    }
+
+    [TestCase(DisputeOutcome.Approved, DisputeStatus.Approved)]
+    [TestCase(DisputeOutcome.Rejected, DisputeStatus.Rejected)]
+    public void Resolve_Given_A_Dispute_Under_Review_Should_Close_It_With_The_Outcome_And_Record_The_Change(DisputeOutcome outcome, DisputeStatus expectedStatus)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute(DisputeStatus.UnderReview);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.Resolve(outcome, "Merchant confirmed the duplicate.", "test.agent", UtcNow.AddDays(4));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.Status.Should().Be(expectedStatus);
+        dispute.IsOpen.Should().BeFalse();
+        dispute.StatusHistory.Last().Should().BeEquivalentTo(new
+        {
+            FromStatus = (DisputeStatus?)DisputeStatus.UnderReview,
+            ToStatus = expectedStatus,
+            Comment = "Merchant confirmed the duplicate.",
+            ChangedBy = "test.agent",
+            ChangedAt = UtcNow.AddDays(4)
+        });
+    }
+
+    [TestCase(DisputeStatus.Submitted)]
+    [TestCase(DisputeStatus.Rejected)]
+    [TestCase(DisputeStatus.Withdrawn)]
+    public void Resolve_Given_A_Dispute_That_Is_Not_Under_Review_Should_Throw_Domain_Exception(DisputeStatus status)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute(status);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var act = () => dispute.Resolve(DisputeOutcome.Approved, "Refunded.", "test.agent", UtcNow.AddDays(10));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        act.Should().Throw<DomainException>().WithMessage($"Dispute {dispute.Reference} is {status} and can only be resolved while it is UnderReview.");
+    }
+
+    [TestCase("")]
+    [TestCase("   ")]
+    public void Resolve_Given_No_Comment_Should_Throw_Domain_Exception(string comment)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute(DisputeStatus.UnderReview);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var act = () => dispute.Resolve(DisputeOutcome.Rejected, comment, "test.agent", UtcNow.AddDays(4));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        act.Should().Throw<DomainException>().WithMessage("A comment is required when resolving a dispute.");
+        dispute.Status.Should().Be(DisputeStatus.UnderReview);
+    }
+
+    [Test]
+    public void Withdraw_Given_A_Submitted_Dispute_Should_Close_It_And_Record_The_Change()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.Withdraw("   ", "test.customer", UtcNow.AddDays(2));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.Status.Should().Be(DisputeStatus.Withdrawn);
+        dispute.IsOpen.Should().BeFalse();
+        dispute.StatusHistory.Last().Should().BeEquivalentTo(new
+        {
+            FromStatus = (DisputeStatus?)DisputeStatus.Submitted,
+            ToStatus = DisputeStatus.Withdrawn,
+            Comment = (string?)null,
+            ChangedBy = "test.customer",
+            ChangedAt = UtcNow.AddDays(2)
+        });
+    }
+
+    [TestCase(DisputeStatus.UnderReview)]
+    [TestCase(DisputeStatus.Approved)]
+    [TestCase(DisputeStatus.Withdrawn)]
+    public void Withdraw_Given_A_Dispute_That_Is_Not_Submitted_Should_Throw_Domain_Exception(DisputeStatus status)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute(status);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var act = () => dispute.Withdraw(null, "test.customer", UtcNow.AddDays(10));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        act.Should().Throw<DomainException>().WithMessage($"Dispute {dispute.Reference} is {status} and can only be withdrawn while it is Submitted.");
+    }
+
+    [Test]
+    public void Status_Changes_Should_Build_A_Timeline_Of_Every_Step_In_Order()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.StartReview(null, "test.agent", UtcNow.AddDays(1));
+        dispute.Resolve(DisputeOutcome.Approved, "Refunded.", "test.agent", UtcNow.AddDays(3));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.StatusHistory.Select(history => history.ToStatus).Should().Equal(DisputeStatus.Submitted, DisputeStatus.UnderReview, DisputeStatus.Approved);
+        dispute.DomainEvents.Should().ContainSingle(because: "only submitting raises an event so far");
+    }
+
+    private static Dispute CreateDispute(DisputeStatus status = DisputeStatus.Submitted)
+    {
+        var dispute = Dispute.Submit("DSP-2026-000001", CreateTransaction(UtcNow.AddDays(-3)), Guid.NewGuid(), DisputeReason.DuplicateCharge, null, "test.customer", UtcNow);
+
+        if (status == DisputeStatus.Withdrawn)
+            dispute.Withdraw(null, "test.customer", UtcNow.AddHours(1));
+
+        if (status is DisputeStatus.UnderReview or DisputeStatus.Approved or DisputeStatus.Rejected)
+            dispute.StartReview(null, "test.agent", UtcNow.AddHours(1));
+
+        if (status is DisputeStatus.Approved or DisputeStatus.Rejected)
+            dispute.Resolve(status == DisputeStatus.Approved ? DisputeOutcome.Approved : DisputeOutcome.Rejected, "Resolved.", "test.agent", UtcNow.AddHours(2));
+
+        return dispute;
+    }
+
     private static Transaction CreateTransaction(DateTime transactionDate, TransactionStatus status = TransactionStatus.Posted)
     {
         return TestData.CreateCustomer().AddAccount().AddTransaction(transactionDate, status: status);

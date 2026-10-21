@@ -61,4 +61,44 @@ public class Dispute : AuditableEntity
 
         return dispute;
     }
+
+    public void StartReview(string? comment, string changedBy, DateTime utcNow)
+    {
+        if (Status != DisputeStatus.Submitted)
+            throw new DomainException($"Dispute {Reference} is {Status} and can only be reviewed while it is {DisputeStatus.Submitted}.");
+
+        ChangeStatus(DisputeStatus.UnderReview, comment, changedBy, utcNow);
+    }
+
+    public void Resolve(DisputeOutcome outcome, string comment, string changedBy, DateTime utcNow)
+    {
+        if (Status != DisputeStatus.UnderReview)
+            throw new DomainException($"Dispute {Reference} is {Status} and can only be resolved while it is {DisputeStatus.UnderReview}.");
+
+        if (string.IsNullOrWhiteSpace(comment))
+            throw new DomainException("A comment is required when resolving a dispute.");
+
+        var toStatus = outcome switch
+        {
+            DisputeOutcome.Approved => DisputeStatus.Approved,
+            DisputeOutcome.Rejected => DisputeStatus.Rejected,
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null)
+        };
+
+        ChangeStatus(toStatus, comment, changedBy, utcNow);
+    }
+
+    public void Withdraw(string? comment, string changedBy, DateTime utcNow)
+    {
+        if (Status != DisputeStatus.Submitted)
+            throw new DomainException($"Dispute {Reference} is {Status} and can only be withdrawn while it is {DisputeStatus.Submitted}.");
+
+        ChangeStatus(DisputeStatus.Withdrawn, comment, changedBy, utcNow);
+    }
+
+    private void ChangeStatus(DisputeStatus toStatus, string? comment, string changedBy, DateTime utcNow)
+    {
+        statusHistory.Add(new DisputeStatusHistory(Id, Status, toStatus, string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(), changedBy, utcNow));
+        Status = toStatus;
+    }
 }
