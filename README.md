@@ -87,6 +87,7 @@ All endpoints are under `/api/v1`. Dates in responses are UTC. The `fromDate` an
 | `POST` | `/disputes` | customer | Disputes one of the customer's transactions. Body: `transactionId`, `reason`, `description` (required when `reason` is `Other`, max 1000 characters). Returns `201` with the dispute and a `Location` header. |
 | `GET` | `/disputes` | customer | The signed-in customer's dispute history, newest first. Filters: `fromDate`, `toDate` (inclusive, `yyyy-MM-dd`, on the submission date), `status` (`Submitted`/`UnderReview`/`Approved`/`Rejected`/`Withdrawn`). Paging: `pageNumber`, `pageSize` (max 100). |
 | `GET` | `/disputes/{id}` | customer | One of the customer's disputes, with a summary of the transaction and the status timeline (oldest first: who changed it, when and why). Another customer's dispute returns `404`. |
+| `POST` | `/disputes/{id}/withdraw` | customer | Withdraws one of the customer's disputes while it is still `Submitted`. Optional body: `comment` (max 1000 characters), shown in the timeline. Returns `200` with the updated dispute. |
 
 Transaction responses include `isDisputable` and `openDisputeId`, so clients don't need to re-implement the dispute rules.
 
@@ -98,3 +99,5 @@ Transaction responses include `isDisputable` and `openDisputeId`, so clients don
 - Reasons: `UnauthorisedTransaction`, `DuplicateCharge`, `IncorrectAmount`, `GoodsOrServicesNotReceived`, `NotAsDescribed`, `CancelledSubscription`, `RefundNotReceived`, `Other`.
 - Each dispute gets a readable reference such as `DSP-2026-000123`, numbered from a SQL Server sequence.
 - A new dispute starts as `Submitted` with a first entry in its status history, and a simulated "Dispute received" notification is logged.
+- A customer can withdraw their own dispute only while it is `Submitted` (`409` once it is under review or closed). It moves to `Withdrawn` with a history entry, a simulated notification is logged, and the transaction can be disputed again.
+- If a dispute is changed by another request between being read and saved (for example an agent starts a review while the customer withdraws), the row version check fails and the API returns `409`.

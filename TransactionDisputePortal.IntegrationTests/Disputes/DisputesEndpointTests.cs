@@ -233,6 +233,95 @@ public class DisputesEndpointTests
         entry.GetProperty("toStatus").GetString().Should().Be("Submitted");
     }
 
+    [Test]
+    public async Task Post_Withdraw_Given_A_Submitted_Dispute_Should_Withdraw_It_And_Make_The_Transaction_Disputable_Again()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var transaction = await SeedTransaction(customer);
+        using var client = factory.CreateClientFor(customer.ExternalUserId);
+        var disputeId = await CreateDispute(client, transaction);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await client.PostAsJsonAsync($"/api/v1/disputes/{disputeId}/withdraw", new { comment = "The merchant refunded me." });
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var body = await ReadJson(actual);
+        body.RootElement.GetProperty("status").GetString().Should().Be("Withdrawn");
+        var entry = body.RootElement.GetProperty("timeline").EnumerateArray().Last();
+        entry.GetProperty("toStatus").GetString().Should().Be("Withdrawn");
+        entry.GetProperty("comment").GetString().Should().Be("The merchant refunded me.");
+
+        using var transactionResponse = await client.GetAsync($"/api/v1/transactions/{transaction.Id}");
+        using var transactionBody = await ReadJson(transactionResponse);
+        transactionBody.RootElement.GetProperty("isDisputable").GetBoolean().Should().BeTrue();
+        transactionBody.RootElement.GetProperty("openDisputeId").ValueKind.Should().Be(JsonValueKind.Null);
+
+        using var disputedAgain = await client.PostAsJsonAsync("/api/v1/disputes", new { transactionId = transaction.Id, reason = "DuplicateCharge" });
+        disputedAgain.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Test]
+    public async Task Post_Withdraw_Given_No_Body_Should_Withdraw_Without_A_Comment()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var transaction = await SeedTransaction(customer);
+        using var client = factory.CreateClientFor(customer.ExternalUserId);
+        var disputeId = await CreateDispute(client, transaction);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await client.PostAsync($"/api/v1/disputes/{disputeId}/withdraw", content: null);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var body = await ReadJson(actual);
+        body.RootElement.GetProperty("status").GetString().Should().Be("Withdrawn");
+        body.RootElement.GetProperty("timeline").EnumerateArray().Last().GetProperty("comment").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Test]
+    public async Task Post_Withdraw_Given_The_Dispute_Is_Already_Withdrawn_Should_Return_Conflict()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var transaction = await SeedTransaction(customer);
+        using var client = factory.CreateClientFor(customer.ExternalUserId);
+        var disputeId = await CreateDispute(client, transaction);
+        using var first = await client.PostAsync($"/api/v1/disputes/{disputeId}/withdraw", content: null);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await client.PostAsync($"/api/v1/disputes/{disputeId}/withdraw", content: null);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        actual.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        actual.Content.Headers.ContentType!.MediaType.Should().Be(ProblemContentType);
+
+        using var body = await ReadJson(actual);
+        body.RootElement.GetProperty("detail").GetString().Should().EndWith("is Withdrawn and can only be withdrawn while it is Submitted.");
+    }
+
+    [Test]
+    public async Task Post_Withdraw_Given_Another_Customers_Dispute_Should_Return_Not_Found()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        using var otherClient = factory.CreateClientFor(otherCustomer.ExternalUserId);
+        var disputeId = await CreateDispute(otherClient, await SeedTransaction(otherCustomer));
+
+        using var client = factory.CreateClientFor(customer.ExternalUserId);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await client.PostAsync($"/api/v1/disputes/{disputeId}/withdraw", content: null);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var fetched = await otherClient.GetAsync($"/api/v1/disputes/{disputeId}");
+        using var fetchedBody = await ReadJson(fetched);
+        fetchedBody.RootElement.GetProperty("status").GetString().Should().Be("Submitted");
+    }
+
     private static async Task<Guid> CreateDispute(HttpClient client, Transaction transaction)
     {
         using var response = await client.PostAsJsonAsync("/api/v1/disputes", new { transactionId = transaction.Id, reason = "DuplicateCharge" });

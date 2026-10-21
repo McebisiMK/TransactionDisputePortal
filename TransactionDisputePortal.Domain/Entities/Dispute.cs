@@ -94,6 +94,7 @@ public class Dispute : AuditableEntity
             throw new DomainException($"Dispute {Reference} is {Status} and can only be withdrawn while it is {DisputeStatus.Submitted}.");
 
         ChangeStatus(DisputeStatus.Withdrawn, comment, changedBy, utcNow);
+        AddDomainEvent(new DisputeWithdrawn(Id, Reference, CustomerId, TransactionId));
     }
 
     private void ChangeStatus(DisputeStatus toStatus, string? comment, string changedBy, DateTime utcNow)

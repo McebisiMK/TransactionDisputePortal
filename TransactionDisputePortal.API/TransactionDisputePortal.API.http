@@ -33,3 +33,14 @@ Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
+
+POST {{TransactionDisputePortal.API_HostAddress}}/api/v1/disputes/00000000-0000-0000-0000-000000000000/withdraw
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "comment": "The merchant refunded me."
+}
+
+###

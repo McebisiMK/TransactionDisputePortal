@@ -246,19 +246,53 @@ public class DisputeTests
         });
     }
 
+    [Test]
+    public void Withdraw_Given_A_Comment_Should_Record_It_Trimmed()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.Withdraw("  The merchant refunded me.  ", "test.customer", UtcNow.AddDays(2));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.StatusHistory.Last().Comment.Should().Be("The merchant refunded me.");
+    }
+
+    [Test]
+    public void Withdraw_Given_A_Submitted_Dispute_Should_Raise_Dispute_Withdrawn()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute();
+        dispute.ClearDomainEvents();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.Withdraw(null, "test.customer", UtcNow.AddDays(2));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new DisputeWithdrawn(dispute.Id, dispute.Reference, dispute.CustomerId, dispute.TransactionId), options => options.Excluding(domainEvent => domainEvent.OccurredOn));
+    }
+
     [TestCase(DisputeStatus.UnderReview)]
     [TestCase(DisputeStatus.Approved)]
+    [TestCase(DisputeStatus.Rejected)]
     [TestCase(DisputeStatus.Withdrawn)]
-    public void Withdraw_Given_A_Dispute_That_Is_Not_Submitted_Should_Throw_Domain_Exception(DisputeStatus status)
+    public void Withdraw_Given_A_Dispute_That_Is_Not_Submitted_Should_Throw_Domain_Exception_And_Leave_It_Unchanged(DisputeStatus status)
     {
         //------------------------------------- Arrange ------------------------------------------------------
         var dispute = CreateDispute(status);
+        var historyCount = dispute.StatusHistory.Count;
+        dispute.ClearDomainEvents();
 
         //------------------------------------- Act     ------------------------------------------------------
         var act = () => dispute.Withdraw(null, "test.customer", UtcNow.AddDays(10));
 
         //------------------------------------- Assert  ------------------------------------------------------
         act.Should().Throw<DomainException>().WithMessage($"Dispute {dispute.Reference} is {status} and can only be withdrawn while it is Submitted.");
+        dispute.Status.Should().Be(status);
+        dispute.StatusHistory.Should().HaveCount(historyCount);
+        dispute.DomainEvents.Should().BeEmpty();
     }
 
     [Test]
