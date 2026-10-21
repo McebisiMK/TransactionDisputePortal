@@ -88,6 +88,11 @@ All endpoints are under `/api/v1`. Dates in responses are UTC. The `fromDate` an
 | `GET` | `/disputes` | customer | The signed-in customer's dispute history, newest first. Filters: `fromDate`, `toDate` (inclusive, `yyyy-MM-dd`, on the submission date), `status` (`Submitted`/`UnderReview`/`Approved`/`Rejected`/`Withdrawn`). Paging: `pageNumber`, `pageSize` (max 100). |
 | `GET` | `/disputes/{id}` | customer | One of the customer's disputes, with a summary of the transaction and the status timeline (oldest first: who changed it, when and why). Another customer's dispute returns `404`. |
 | `POST` | `/disputes/{id}/withdraw` | customer | Withdraws one of the customer's disputes while it is still `Submitted`. Optional body: `comment` (max 1000 characters), shown in the timeline. Returns `200` with the updated dispute. |
+| `GET` | `/agent/disputes` | agent | The dispute queue across all customers, oldest first. Shows open disputes (`Submitted` and `UnderReview`) unless `status` is given. Paging: `pageNumber`, `pageSize` (max 100). |
+| `GET` | `/agent/disputes/{id}` | agent | Any dispute, with the customer, a summary of the transaction, the status timeline and its `rowVersion`. |
+| `PATCH` | `/agent/disputes/{id}/status` | agent | Changes the status of a dispute. Body: `status` (`UnderReview`, `Approved` or `Rejected`), `comment` (required for `Approved`/`Rejected`, max 1000 characters), `rowVersion` (from the queue or dispute). Returns `200` with the updated dispute and its new `rowVersion`. |
+
+Customers get `403` on the agent endpoints, and agents get `403` on the customer endpoints.
 
 Transaction responses include `isDisputable` and `openDisputeId`, so clients don't need to re-implement the dispute rules.
 
@@ -100,4 +105,6 @@ Transaction responses include `isDisputable` and `openDisputeId`, so clients don
 - Each dispute gets a readable reference such as `DSP-2026-000123`, numbered from a SQL Server sequence.
 - A new dispute starts as `Submitted` with a first entry in its status history, and a simulated "Dispute received" notification is logged.
 - A customer can withdraw their own dispute only while it is `Submitted` (`409` once it is under review or closed). It moves to `Withdrawn` with a history entry, a simulated notification is logged, and the transaction can be disputed again.
+- An agent moves a dispute from `Submitted` to `UnderReview`, then resolves it as `Approved` or `Rejected` with a comment for the customer. Any other change returns `409`. Each change adds a history entry, which the customer sees in their timeline, and logs a simulated notification to the customer.
+- An agent sends back the `rowVersion` of the dispute they looked at. If the dispute has changed since (another agent updated it, or the customer withdrew it), the API returns `409` and the agent has to reload it.
 - If a dispute is changed by another request between being read and saved (for example an agent starts a review while the customer withdraws), the row version check fails and the API returns `409`.

@@ -156,6 +156,22 @@ public class DisputeTests
         });
     }
 
+    [Test]
+    public void StartReview_Given_A_Submitted_Dispute_Should_Raise_Dispute_Status_Changed()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute();
+        dispute.ClearDomainEvents();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.StartReview(null, "test.agent", UtcNow.AddDays(1));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new DisputeStatusChanged(dispute.Id, dispute.Reference, dispute.CustomerId, DisputeStatus.Submitted, DisputeStatus.UnderReview),
+                options => options.Excluding(domainEvent => domainEvent.OccurredOn));
+    }
+
     [TestCase(DisputeStatus.UnderReview)]
     [TestCase(DisputeStatus.Approved)]
     [TestCase(DisputeStatus.Withdrawn)]
@@ -192,6 +208,23 @@ public class DisputeTests
             ChangedBy = "test.agent",
             ChangedAt = UtcNow.AddDays(4)
         });
+    }
+
+    [TestCase(DisputeOutcome.Approved, DisputeStatus.Approved)]
+    [TestCase(DisputeOutcome.Rejected, DisputeStatus.Rejected)]
+    public void Resolve_Given_A_Dispute_Under_Review_Should_Raise_Dispute_Status_Changed(DisputeOutcome outcome, DisputeStatus expectedStatus)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var dispute = CreateDispute(DisputeStatus.UnderReview);
+        dispute.ClearDomainEvents();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        dispute.Resolve(outcome, "Merchant confirmed the duplicate.", "test.agent", UtcNow.AddDays(4));
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        dispute.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new DisputeStatusChanged(dispute.Id, dispute.Reference, dispute.CustomerId, DisputeStatus.UnderReview, expectedStatus),
+                options => options.Excluding(domainEvent => domainEvent.OccurredOn));
     }
 
     [TestCase(DisputeStatus.Submitted)]
@@ -307,7 +340,7 @@ public class DisputeTests
 
         //------------------------------------- Assert  ------------------------------------------------------
         dispute.StatusHistory.Select(history => history.ToStatus).Should().Equal(DisputeStatus.Submitted, DisputeStatus.UnderReview, DisputeStatus.Approved);
-        dispute.DomainEvents.Should().ContainSingle(because: "only submitting raises an event so far");
+        dispute.DomainEvents.Select(domainEvent => domainEvent.GetType()).Should().Equal(typeof(DisputeSubmitted), typeof(DisputeStatusChanged), typeof(DisputeStatusChanged));
     }
 
     private static Dispute CreateDispute(DisputeStatus status = DisputeStatus.Submitted)

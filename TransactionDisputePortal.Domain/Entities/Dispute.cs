@@ -68,6 +68,7 @@ public class Dispute : AuditableEntity
             throw new DomainException($"Dispute {Reference} is {Status} and can only be reviewed while it is {DisputeStatus.Submitted}.");
 
         ChangeStatus(DisputeStatus.UnderReview, comment, changedBy, utcNow);
+        AddDomainEvent(new DisputeStatusChanged(Id, Reference, CustomerId, DisputeStatus.Submitted, DisputeStatus.UnderReview));
     }
 
     public void Resolve(DisputeOutcome outcome, string comment, string changedBy, DateTime utcNow)
@@ -86,6 +87,7 @@ public class Dispute : AuditableEntity
         };
 
         ChangeStatus(toStatus, comment, changedBy, utcNow);
+        AddDomainEvent(new DisputeStatusChanged(Id, Reference, CustomerId, DisputeStatus.UnderReview, toStatus));
     }
 
     public void Withdraw(string? comment, string changedBy, DateTime utcNow)

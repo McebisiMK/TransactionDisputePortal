@@ -44,3 +44,28 @@ Accept: application/json
 }
 
 ###
+
+GET {{TransactionDisputePortal.API_HostAddress}}/api/v1/agent/disputes?pageNumber=1&pageSize=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+GET {{TransactionDisputePortal.API_HostAddress}}/api/v1/agent/disputes/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+PATCH {{TransactionDisputePortal.API_HostAddress}}/api/v1/agent/disputes/00000000-0000-0000-0000-000000000000/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "status": "UnderReview",
+  "comment": "Requested the transaction records from the merchant.",
+  "rowVersion": "AAAAAAAAB9E="
+}
+
+###

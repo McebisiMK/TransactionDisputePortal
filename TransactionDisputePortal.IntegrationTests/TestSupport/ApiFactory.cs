@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TransactionDisputePortal.Application.Common.Interfaces;
+using TransactionDisputePortal.Application.Common.Security;
 using TransactionDisputePortal.Infrastructure.Persistence;
 using TransactionDisputePortal.Infrastructure.Persistence.Interceptors;
 
@@ -55,10 +56,10 @@ public class ApiFactory : WebApplicationFactory<Program>
         await context.SaveChangesAsync();
     }
 
-    public HttpClient CreateClientFor(Guid userId)
+    public HttpClient CreateClientFor(Guid userId, string role = Roles.Customer)
     {
         var client = CreateClient();
-        client.DefaultRequestHeaders.Authorization = new(TestAuthenticationHandler.SchemeName, userId.ToString());
+        client.DefaultRequestHeaders.Authorization = new(TestAuthenticationHandler.SchemeName, $"{userId} {role}");
 
         return client;
     }
