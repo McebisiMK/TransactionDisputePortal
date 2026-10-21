@@ -173,6 +173,45 @@ public class DisputesEndpointTests
     }
 
     [Test]
+    public async Task Get_Disputes_Should_Return_Only_The_Customers_Own_Disputes_Newest_First()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var historyCustomer = CreateCustomer("History Customer");
+        await factory.SeedAsync(historyCustomer);
+        using var client = factory.CreateClientFor(historyCustomer.ExternalUserId);
+        using var otherClient = factory.CreateClientFor(otherCustomer.ExternalUserId);
+
+        var first = await CreateDispute(client, await SeedTransaction(historyCustomer));
+        var second = await CreateDispute(client, await SeedTransaction(historyCustomer));
+        await CreateDispute(otherClient, await SeedTransaction(otherCustomer));
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await client.GetAsync("/api/v1/disputes");
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var body = await ReadJson(actual);
+        body.RootElement.GetProperty("totalCount").GetInt32().Should().Be(2);
+        body.RootElement.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("id").GetGuid()).Should().Equal(second, first);
+        body.RootElement.GetProperty("items")[0].GetProperty("merchant").GetString().Should().Be("Woolworths Food");
+    }
+
+    [Test]
+    public async Task Get_Disputes_Given_An_Unknown_Status_Should_Return_Validation_Problem()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        using var client = factory.CreateClientFor(customer.ExternalUserId);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await client.GetAsync("/api/v1/disputes?status=Bogus");
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        actual.Content.Headers.ContentType!.MediaType.Should().Be(ProblemContentType);
+    }
+
+    [Test]
     public async Task Get_Dispute_By_Id_Should_Return_The_Transaction_Summary_And_Timeline()
     {
         //------------------------------------- Arrange ------------------------------------------------------

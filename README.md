@@ -85,6 +85,7 @@ All endpoints are under `/api/v1`. Dates in responses are UTC. The `fromDate` an
 | `GET` | `/transactions` | customer | The signed-in customer's transactions, newest first. Filters: `fromDate`, `toDate` (inclusive, `yyyy-MM-dd`), `search` (merchant or reference), `status` (`Pending`/`Posted`), `accountId`. Paging: `pageNumber`, `pageSize` (max 100). |
 | `GET` | `/transactions/{id}` | customer | One of the customer's transactions. Another customer's transaction returns `404`. |
 | `POST` | `/disputes` | customer | Disputes one of the customer's transactions. Body: `transactionId`, `reason`, `description` (required when `reason` is `Other`, max 1000 characters). Returns `201` with the dispute and a `Location` header. |
+| `GET` | `/disputes` | customer | The signed-in customer's dispute history, newest first. Filters: `fromDate`, `toDate` (inclusive, `yyyy-MM-dd`, on the submission date), `status` (`Submitted`/`UnderReview`/`Approved`/`Rejected`/`Withdrawn`). Paging: `pageNumber`, `pageSize` (max 100). |
 | `GET` | `/disputes/{id}` | customer | One of the customer's disputes, with a summary of the transaction and the status timeline (oldest first: who changed it, when and why). Another customer's dispute returns `404`. |
 
 Transaction responses include `isDisputable` and `openDisputeId`, so clients don't need to re-implement the dispute rules.
