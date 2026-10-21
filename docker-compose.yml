@@ -45,6 +45,20 @@ services:
       keycloak:
         condition: service_started
 
+  web:
+    build:
+      context: ../transaction-dispute-portal-web
+      dockerfile: Dockerfile
+    environment:
+      API_BASE_URL: http://localhost:5000
+      WEB_BASE_URL: http://localhost:3000
+      KEYCLOAK_AUTHORITY: http://localhost:8080/realms/transaction-dispute-portal
+      KEYCLOAK_CLIENT_ID: dispute-portal-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
 volumes:
   sqlserver-data:
   keycloak-data:

@@ -11,12 +11,15 @@ TransactionDisputePortal.Infrastructure  EF Core persistence, external integrati
 
 ## Running with Docker
 
+Clone this repository and [`transaction-dispute-portal-web`](../transaction-dispute-portal-web) side by side; compose builds the web app from `../transaction-dispute-portal-web`. Then run:
+
 ```
 docker compose up -d --build
 ```
 
 | Service | URL |
 |---|---|
+| Web app | http://localhost:3000 |
 | API (Swagger) | http://localhost:5000/swagger |
 | Keycloak | http://localhost:8080 |
 | SQL Server | `localhost,1433` (`sa` / `MSSQL_SA_PASSWORD`) |
