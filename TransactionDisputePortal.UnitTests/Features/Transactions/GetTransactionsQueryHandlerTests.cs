@@ -162,6 +162,27 @@ public class GetTransactionsQueryHandlerTests
         actual.HasNextPage.Should().BeTrue();
     }
 
+    [Test]
+    public async Task Handle_Given_One_Transaction_Has_An_Open_Dispute_Should_Only_Mark_That_One_As_Not_Disputable()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var account = customer.AddAccount();
+        var disputed = account.AddTransaction(BaseDate);
+        var notDisputed = account.AddTransaction(BaseDate.AddDays(-1));
+        var dispute = disputed.AddDispute(BaseDate);
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new GetTransactionsQuery(), CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.Items.Should().ContainSingle(transaction => transaction.Id == disputed.Id && !transaction.IsDisputable && transaction.OpenDisputeId == dispute.Id);
+        actual.Items.Should().ContainSingle(transaction => transaction.Id == notDisputed.Id && transaction.IsDisputable && transaction.OpenDisputeId == null);
+    }
+
     private static async Task<TestDbContext> CreateContext(params Customer[] customers)
     {
         var context = TestDbContext.Create(Substitute.For<IDomainEventDispatcher>());
@@ -176,6 +197,6 @@ public class GetTransactionsQueryHandlerTests
         var currentCustomerService = Substitute.For<ICurrentCustomerService>();
         currentCustomerService.GetCustomerIdAsync(Arg.Any<CancellationToken>()).Returns(customerId);
 
-        return new GetTransactionsQuery.GetTransactionsQueryHandler(TestData.CreateMapper(), context, currentCustomerService);
+        return new GetTransactionsQuery.GetTransactionsQueryHandler(TestData.CreateMapper(), context, currentCustomerService, TestData.CreateTimeProvider(BaseDate));
     }
 }

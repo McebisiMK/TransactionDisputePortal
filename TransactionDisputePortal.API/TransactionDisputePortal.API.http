@@ -14,3 +14,22 @@ Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
+
+POST {{TransactionDisputePortal.API_HostAddress}}/api/v1/disputes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "transactionId": "00000000-0000-0000-0000-000000000000",
+  "reason": "DuplicateCharge",
+  "description": "I was charged twice for the same purchase."
+}
+
+###
+
+GET {{TransactionDisputePortal.API_HostAddress}}/api/v1/disputes/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###

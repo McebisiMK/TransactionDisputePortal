@@ -23,10 +23,11 @@ public record GetTransactionsQuery : PagedQuery, IRequest<PaginatedList<Transact
 
     public Guid? AccountId { get; init; }
 
-    public class GetTransactionsQueryHandler(IMapper mapper, IApplicationDbContext applicationDbContext, ICurrentCustomerService currentCustomerService)
+    public class GetTransactionsQueryHandler(IMapper mapper, IApplicationDbContext applicationDbContext, ICurrentCustomerService currentCustomerService, TimeProvider timeProvider)
         : IRequestHandler<GetTransactionsQuery, PaginatedList<TransactionDTO>>
     {
         private readonly IMapper mapper = mapper;
+        private readonly TimeProvider timeProvider = timeProvider;
         private readonly IApplicationDbContext context = applicationDbContext;
         private readonly ICurrentCustomerService currentCustomerService = currentCustomerService;
 
@@ -46,7 +47,7 @@ public record GetTransactionsQuery : PagedQuery, IRequest<PaginatedList<Transact
                                       .WhereIf(search.IsNotBlank(), transaction => transaction.Merchant.Contains(search!) || transaction.Reference.Contains(search!))
                                       .OrderByDescending(transaction => transaction.TransactionDate)
                                       .ThenByDescending(transaction => transaction.Reference)
-                                      .ProjectTo<TransactionDTO>(mapper.ConfigurationProvider)
+                                      .ProjectTo<TransactionDTO>(mapper.ConfigurationProvider, TransactionDTO.ProjectionParameters(timeProvider.GetUtcNow().UtcDateTime))
                                       .ToPaginatedListAsync(request, cancellationToken);
 
             return transactions;

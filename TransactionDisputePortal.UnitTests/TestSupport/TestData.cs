@@ -55,4 +55,20 @@ public static class TestData
 
         return transaction;
     }
+
+    public static Dispute AddDispute(this Transaction transaction, DateTime utcNow, DisputeReason reason = DisputeReason.DuplicateCharge, string? description = null)
+    {
+        var dispute = Dispute.Submit($"DSP-{utcNow:yyyy}-{Interlocked.Increment(ref sequence):D6}", transaction, transaction.Account.Customer.Id, reason, description, "test.customer", utcNow);
+        transaction.Disputes.Add(dispute);
+
+        return dispute;
+    }
+
+    public static TimeProvider CreateTimeProvider(DateTime utcNow)
+    {
+        var timeProvider = Substitute.For<TimeProvider>();
+        timeProvider.GetUtcNow().Returns(new DateTimeOffset(utcNow));
+
+        return timeProvider;
+    }
 }

@@ -58,6 +58,95 @@ public class GetTransactionByIdQueryHandlerTests
         actual.AccountNumber.Should().Be(expected);
     }
 
+    [TestCase(0)]
+    [TestCase(Dispute.DisputeWindowDays)]
+    public async Task Handle_Given_A_Posted_Transaction_Inside_The_Dispute_Window_Should_Be_Disputable(int daysAgo)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(BaseDate.AddDays(-daysAgo));
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new GetTransactionByIdQuery(transaction.Id), CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.IsDisputable.Should().BeTrue();
+        actual.OpenDisputeId.Should().BeNull();
+    }
+
+    [Test]
+    public async Task Handle_Given_A_Posted_Transaction_Older_Than_The_Dispute_Window_Should_Not_Be_Disputable()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(BaseDate.AddDays(-Dispute.DisputeWindowDays).AddSeconds(-1));
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new GetTransactionByIdQuery(transaction.Id), CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.IsDisputable.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task Handle_Given_A_Pending_Transaction_Should_Not_Be_Disputable()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(BaseDate, status: TransactionStatus.Pending);
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new GetTransactionByIdQuery(transaction.Id), CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.IsDisputable.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task Handle_Given_A_Transaction_With_An_Open_Dispute_Should_Not_Be_Disputable_And_Return_The_Open_Dispute()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(BaseDate.AddDays(-1));
+        var dispute = transaction.AddDispute(BaseDate);
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new GetTransactionByIdQuery(transaction.Id), CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.IsDisputable.Should().BeFalse();
+        actual.OpenDisputeId.Should().Be(dispute.Id);
+    }
+
+    [Test]
+    public async Task Handle_Given_Time_Has_Moved_On_Past_The_Dispute_Window_Should_No_Longer_Be_Disputable()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(BaseDate);
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id, utcNow: BaseDate.AddDays(Dispute.DisputeWindowDays + 1));
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new GetTransactionByIdQuery(transaction.Id), CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.IsDisputable.Should().BeFalse();
+    }
+
     private static async Task<TestDbContext> CreateContext(params Customer[] customers)
     {
         var context = TestDbContext.Create(Substitute.For<IDomainEventDispatcher>());
@@ -67,11 +156,11 @@ public class GetTransactionByIdQueryHandlerTests
         return context;
     }
 
-    private static GetTransactionByIdQuery.GetTransactionByIdQueryHandler CreateHandler(IApplicationDbContext context, Guid customerId)
+    private static GetTransactionByIdQuery.GetTransactionByIdQueryHandler CreateHandler(IApplicationDbContext context, Guid customerId, DateTime? utcNow = null)
     {
         var currentCustomerService = Substitute.For<ICurrentCustomerService>();
         currentCustomerService.GetCustomerIdAsync(Arg.Any<CancellationToken>()).Returns(customerId);
 
-        return new GetTransactionByIdQuery.GetTransactionByIdQueryHandler(TestData.CreateMapper(), context, currentCustomerService);
+        return new GetTransactionByIdQuery.GetTransactionByIdQueryHandler(TestData.CreateMapper(), context, currentCustomerService, TestData.CreateTimeProvider(utcNow ?? BaseDate));
     }
 }

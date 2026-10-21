@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using TransactionDisputePortal.Application.Common.Interfaces;
 using TransactionDisputePortal.Infrastructure.Persistence;
 using TransactionDisputePortal.Infrastructure.Persistence.Interceptors;
 
@@ -32,6 +33,9 @@ public class ApiFactory : WebApplicationFactory<Program>
                 options.UseInMemoryDatabase(databaseName)
                     .AddInterceptors(serviceProvider.GetRequiredService<AuditableEntitySaveChangesInterceptor>());
             });
+
+            services.RemoveAll<IDisputeReferenceGenerator>();
+            services.AddSingleton<IDisputeReferenceGenerator, InMemoryDisputeReferenceGenerator>();
 
             services.AddAuthentication(options =>
                 {

@@ -16,7 +16,9 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("Default")!;
 
         services.AddScoped<AuditableEntitySaveChangesInterceptor>();
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IDisputeReferenceGenerator, DisputeReferenceGenerator>();
 
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
         {

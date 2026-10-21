@@ -9,10 +9,11 @@ namespace TransactionDisputePortal.Application.Features.Transactions.Queries.Get
 
 public record GetTransactionByIdQuery(Guid Id) : IRequest<TransactionDTO>
 {
-    public class GetTransactionByIdQueryHandler(IMapper mapper, IApplicationDbContext applicationDbContext, ICurrentCustomerService currentCustomerService)
+    public class GetTransactionByIdQueryHandler(IMapper mapper, IApplicationDbContext applicationDbContext, ICurrentCustomerService currentCustomerService, TimeProvider timeProvider)
         : IRequestHandler<GetTransactionByIdQuery, TransactionDTO>
     {
         private readonly IMapper mapper = mapper;
+        private readonly TimeProvider timeProvider = timeProvider;
         private readonly IApplicationDbContext applicationDbContext = applicationDbContext;
         private readonly ICurrentCustomerService currentCustomerService = currentCustomerService;
 
@@ -22,7 +23,7 @@ public record GetTransactionByIdQuery(Guid Id) : IRequest<TransactionDTO>
 
             var transaction = await applicationDbContext.Transactions
                                     .Where(transaction => transaction.Id == request.Id && transaction.Account.CustomerId == customerId)
-                                    .ProjectTo<TransactionDTO>(mapper.ConfigurationProvider)
+                                    .ProjectTo<TransactionDTO>(mapper.ConfigurationProvider, TransactionDTO.ProjectionParameters(timeProvider.GetUtcNow().UtcDateTime))
                                     .FirstAsync(cancellationToken);
 
             return transaction;

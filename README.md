@@ -84,3 +84,16 @@ All endpoints are under `/api/v1`. Dates in responses are UTC. The `fromDate` an
 |---|---|---|---|
 | `GET` | `/transactions` | customer | The signed-in customer's transactions, newest first. Filters: `fromDate`, `toDate` (inclusive, `yyyy-MM-dd`), `search` (merchant or reference), `status` (`Pending`/`Posted`), `accountId`. Paging: `pageNumber`, `pageSize` (max 100). |
 | `GET` | `/transactions/{id}` | customer | One of the customer's transactions. Another customer's transaction returns `404`. |
+| `POST` | `/disputes` | customer | Disputes one of the customer's transactions. Body: `transactionId`, `reason`, `description` (required when `reason` is `Other`, max 1000 characters). Returns `201` with the dispute and a `Location` header. |
+| `GET` | `/disputes/{id}` | customer | One of the customer's disputes. Another customer's dispute returns `404`. |
+
+Transaction responses include `isDisputable` and `openDisputeId`, so clients don't need to re-implement the dispute rules.
+
+### Dispute rules
+
+- A customer can only dispute their own transactions (`404` otherwise).
+- Only `Posted` transactions can be disputed, and only within 120 days of the transaction date (`409`).
+- A transaction can have only one open (`Submitted` or `UnderReview`) dispute at a time (`409`). This is checked by the handler and enforced by a filtered unique index, so two simultaneous requests can't both succeed.
+- Reasons: `UnauthorisedTransaction`, `DuplicateCharge`, `IncorrectAmount`, `GoodsOrServicesNotReceived`, `NotAsDescribed`, `CancelledSubscription`, `RefundNotReceived`, `Other`.
+- Each dispute gets a readable reference such as `DSP-2026-000123`, numbered from a SQL Server sequence.
+- A new dispute starts as `Submitted` with a first entry in its status history, and a simulated "Dispute received" notification is logged.
