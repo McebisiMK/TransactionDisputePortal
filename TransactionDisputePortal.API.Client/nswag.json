@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/RicoSuter/NSwag/master/src/NSwag.Commands/commands/nswag.schema.json",
+  "runtime": "Net100",
+  "defaultVariables": "OpenApiDocument=openapi.json,TypeScriptOutput=Typescript/api-client.ts",
+  "documentGenerator": {
+    "fromDocument": {
+      "url": "$(OpenApiDocument)"
+    }
+  },
+  "codeGenerators": {
+    "openApiToTypeScriptClient": {
+      "template": "Fetch",
+      "typeScriptVersion": 5.0,
+      "output": "$(TypeScriptOutput)",
+
+      "className": "{controller}Client",
+      "operationGenerationMode": "MultipleClientsFromOperationId",
+      "generateClientClasses": true,
+      "generateClientInterfaces": false,
+      "generateOptionalParameters": true,
+      "useAbortSignal": true,
+
+      "clientBaseClass": "ApiClientBase",
+      "configurationClass": "ApiClientConfig",
+      "useTransformOptionsMethod": true,
+      "extensionCode": "ApiClientBase.extension.ts",
+
+      "generateDtoTypes": true,
+      "typeStyle": "Interface",
+      "enumStyle": "StringLiteral",
+      "dateTimeType": "String",
+      "markOptionalProperties": true,
+      "nullValue": "Null",
+      "exceptionClass": "ApiException",
+      "wrapDtoExceptions": true
+    }
+  }
+}

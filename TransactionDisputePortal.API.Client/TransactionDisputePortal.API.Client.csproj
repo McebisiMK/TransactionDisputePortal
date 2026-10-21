@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Generates the TypeScript (fetch) client for the React app from the API's OpenAPI document:
+      1. Swashbuckle CLI exports openapi.json from the built API assembly (no running server or database needed).
+      2. NSwag turns openapi.json into Typescript/api-client.ts using nswag.json.
+    Runs after build only when the API assembly, nswag.json or the extension code changed.
+    Skip with: dotnet build -p:GenerateApiClient=false
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateApiClient Condition="'$(GenerateApiClient)' == ''">true</GenerateApiClient>
+    <OpenApiDocument>$(MSBuildProjectDirectory)\openapi.json</OpenApiDocument>
+    <TypeScriptOutput>$(MSBuildProjectDirectory)\Typescript\api-client.ts</TypeScriptOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TransactionDisputePortal.API\TransactionDisputePortal.API.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="ResolveApiAssembly" AfterTargets="Build" Condition="'$(GenerateApiClient)' == 'true'">
+    <MSBuild Projects="@(ProjectReference)" Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" PropertyName="ApiAssemblyPath" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="GenerateApiClient"
+          AfterTargets="ResolveApiAssembly"
+          Condition="'$(GenerateApiClient)' == 'true'"
+          Inputs="$(ApiAssemblyPath);nswag.json;ApiClientBase.extension.ts"
+          Outputs="$(OpenApiDocument);$(TypeScriptOutput)">
+
+    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildProjectDirectory)" StandardOutputImportance="low" />
+
+    <!-- Run from the API output folder so the API finds its appsettings.json. -->
+    <Exec Command="dotnet swagger tofile --output &quot;$(OpenApiDocument)&quot; &quot;$(ApiAssemblyPath)&quot; v1"
+          WorkingDirectory="$([System.IO.Path]::GetDirectoryName($(ApiAssemblyPath)))" />
+
+    <Exec Command="dotnet nswag run nswag.json /variables:OpenApiDocument=&quot;$(OpenApiDocument)&quot;,TypeScriptOutput=&quot;$(TypeScriptOutput)&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+
+    <!-- NSwag skips writing unchanged output; touch it so the next build is up to date. -->
+    <Touch Files="$(OpenApiDocument);$(TypeScriptOutput)" />
+  </Target>
+
+</Project>

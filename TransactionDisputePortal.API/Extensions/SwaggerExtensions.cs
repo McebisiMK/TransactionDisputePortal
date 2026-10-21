@@ -1,4 +1,5 @@
 using Microsoft.OpenApi;
+using TransactionDisputePortal.API.Helpers;
 
 namespace TransactionDisputePortal.API.Extensions;
 
@@ -13,7 +14,14 @@ public static class SwaggerExtensions
 
         services.AddSwaggerGen(options =>
         {
-            options.CustomSchemaIds(type => type.FullName!.Replace('+', '-'));
+            options.SwaggerDoc("v1", new OpenApiInfo { Title = "Transaction Dispute Portal API", Version = "v1" });
+
+            // Schema and operation ids become the generated TypeScript type and method names (see TransactionDisputePortal.API.Client).
+            options.CustomSchemaIds(GetSchemaId);
+            options.CustomOperationIds(api => $"{api.ActionDescriptor.RouteValues["controller"]}_{api.ActionDescriptor.RouteValues["action"]}");
+            options.SupportNonNullableReferenceTypes();
+            options.UseAllOfToExtendReferenceSchemas();
+            options.SchemaFilter<NonNullablePropertiesRequiredSchemaFilter>();
 
             options.AddSecurityDefinition("Keycloak", new OpenApiSecurityScheme
             {
@@ -35,4 +43,9 @@ public static class SwaggerExtensions
             });
         });
     }
+
+    // PaginatedList<DisputeDTO> -> PaginatedListOfDisputeModel; DTO stays a backend naming convention.
+    private static string GetSchemaId(Type type) => type.IsGenericType
+        ? $"{type.Name[..type.Name.IndexOf('`')]}Of{string.Join("And", type.GetGenericArguments().Select(GetSchemaId))}"
+        : type.Name.EndsWith("DTO", StringComparison.Ordinal) ? $"{type.Name[..^3]}Model" : type.Name;
 }

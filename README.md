@@ -7,6 +7,7 @@ TransactionDisputePortal.API             ASP.NET Core controllers, HTTP concerns
 TransactionDisputePortal.Application     Use cases (CQRS commands/handlers), validation, DTOs, abstractions
 TransactionDisputePortal.Domain          Entities and domain events, no framework dependencies
 TransactionDisputePortal.Infrastructure  EF Core persistence, external integrations, DI wiring
+TransactionDisputePortal.API.Client      Generated TypeScript client (models + fetch clients) for the React app
 ```
 
 ## Running with Docker
@@ -111,3 +112,30 @@ Transaction responses include `isDisputable` and `openDisputeId`, so clients don
 - An agent moves a dispute from `Submitted` to `UnderReview`, then resolves it as `Approved` or `Rejected` with a comment for the customer. Any other change returns `409`. Each change adds a history entry, which the customer sees in their timeline, and logs a simulated notification to the customer.
 - An agent sends back the `rowVersion` of the dispute they looked at. If the dispute has changed since (another agent updated it, or the customer withdrew it), the API returns `409` and the agent has to reload it.
 - If a dispute is changed by another request between being read and saved (for example an agent starts a review while the customer withdraws), the row version check fails and the API returns `409`.
+
+## TypeScript API client
+
+`TransactionDisputePortal.API.Client` generates `Typescript/api-client.ts`: one client class per controller (`TransactionsClient`, `DisputesClient`, `AgentDisputesClient`) and the request/response types, using the native `fetch`. Building the project (or the solution) regenerates it whenever the API changes:
+
+1. the Swashbuckle CLI exports `openapi.json` from the built API assembly (no running API or database needed),
+2. NSwag generates the client from it, as configured in `nswag.json`.
+
+Both tools are pinned in `dotnet-tools.json` and restored by the build. Keep the Swashbuckle CLI version in step with the `Swashbuckle.AspNetCore` package. Skip generation with `dotnet build -p:GenerateApiClient=false`.
+
+Commit `openapi.json` and `api-client.ts` with the API change, so reviewers see the contract change. Type and method names come from the Swagger schema and operation ids (`DisputeDTO` becomes `DisputeModel`, `PaginatedList<DisputeDTO>` becomes `PaginatedListOfDisputeModel`, `DisputesController.GetDisputes` becomes `DisputesClient.getDisputes`).
+
+```ts
+const config = { getAccessToken: () => keycloak.token };
+const disputes = new DisputesClient(config, import.meta.env.VITE_API_BASE_URL);
+
+const page = await disputes.getDisputes(undefined, undefined, "Submitted", 1, 20, signal);
+
+try {
+    await disputes.withdrawDispute(id, { comment });
+} catch (error) {
+    if (ApiException.isApiException(error) && error.status === 409)
+        console.log((error.result as ProblemDetails).detail);
+}
+```
+
+Dates are ISO strings, enums are string literal unions, and every method takes an optional `AbortSignal`. Non-2xx responses throw an `ApiException` whose `result` is the `ProblemDetails` (or `HttpValidationProblemDetails` for `422`) the API returned.
