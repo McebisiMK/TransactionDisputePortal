@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY TransactionDisputePortal.slnx ./
+COPY TransactionDisputePortal.slnx Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY TransactionDisputePortal.API/TransactionDisputePortal.API.csproj TransactionDisputePortal.API/
 COPY TransactionDisputePortal.Application/TransactionDisputePortal.Application.csproj TransactionDisputePortal.Application/
 COPY TransactionDisputePortal.Domain/TransactionDisputePortal.Domain.csproj TransactionDisputePortal.Domain/

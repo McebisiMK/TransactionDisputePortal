@@ -9,7 +9,6 @@
   -->
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
     <GenerateApiClient Condition="'$(GenerateApiClient)' == ''">true</GenerateApiClient>
     <OpenApiDocument>$(MSBuildProjectDirectory)\openapi.json</OpenApiDocument>
     <TypeScriptOutput>$(MSBuildProjectDirectory)\Typescript\api-client.ts</TypeScriptOutput>
