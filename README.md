@@ -95,6 +95,7 @@ All endpoints are under `/api/v1`. Dates in responses are UTC. The `fromDate` an
 | `GET` | `/agent/disputes` | agent | The dispute queue across all customers, oldest first. Shows open disputes (`Submitted` and `UnderReview`) unless `status` is given. Paging: `pageNumber`, `pageSize` (max 100). |
 | `GET` | `/agent/disputes/{id}` | agent | Any dispute, with the customer, a summary of the transaction, the status timeline and its `rowVersion`. |
 | `PATCH` | `/agent/disputes/{id}/status` | agent | Changes the status of a dispute. Body: `status` (`UnderReview`, `Approved` or `Rejected`), `comment` (required for `Approved`/`Rejected`, max 1000 characters), `rowVersion` (from the queue or dispute). Returns `200` with the updated dispute and its new `rowVersion`. |
+| `GET` | `/lookups` | any signed-in user | The dispute reasons, dispute statuses and transaction statuses as `{ id, name }` lists, for example `{ "id": "UnderReview", "name": "Under review" }`. The `id` is the enum value used in requests, filters and responses; the `name` is the display name from the enum's `[Description]`. |
 
 Customers get `403` on the agent endpoints, and agents get `403` on the customer endpoints.
 

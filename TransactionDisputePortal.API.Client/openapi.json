@@ -618,6 +618,36 @@
         }
       }
     },
+    "/api/v1/lookups": {
+      "get": {
+        "tags": [
+          "Lookups"
+        ],
+        "operationId": "Lookups_GetLookups",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookupsModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/transactions": {
       "get": {
         "tags": [
@@ -1265,6 +1295,95 @@
         },
         "additionalProperties": { }
       },
+      "LookupModelOfDisputeReason": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisputeReason"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LookupModelOfDisputeStatus": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisputeStatus"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LookupModelOfTransactionStatus": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TransactionStatus"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LookupsModel": {
+        "required": [
+          "disputeReasons",
+          "disputeStatuses",
+          "transactionStatuses"
+        ],
+        "type": "object",
+        "properties": {
+          "disputeReasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LookupModelOfDisputeReason"
+            }
+          },
+          "disputeStatuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LookupModelOfDisputeStatus"
+            }
+          },
+          "transactionStatuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LookupModelOfTransactionStatus"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "PaginatedListOfDisputeQueueItemModel": {
         "required": [
           "hasNextPage",
@@ -1590,6 +1709,9 @@
     },
     {
       "name": "Disputes"
+    },
+    {
+      "name": "Lookups"
     },
     {
       "name": "Transactions"

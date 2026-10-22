@@ -45,7 +45,15 @@ public static class SwaggerExtensions
     }
 
     // PaginatedList<DisputeDTO> -> PaginatedListOfDisputeModel; DTO stays a backend naming convention.
-    private static string GetSchemaId(Type type) => type.IsGenericType
-        ? $"{type.Name[..type.Name.IndexOf('`')]}Of{string.Join("And", type.GetGenericArguments().Select(GetSchemaId))}"
-        : type.Name.EndsWith("DTO", StringComparison.Ordinal) ? $"{type.Name[..^3]}Model" : type.Name;
+    private static string GetSchemaId(Type type)
+    {
+        return type.IsGenericType
+            ? $"{ToModelName(type.Name[..type.Name.IndexOf('`')])}Of{string.Join("And", type.GetGenericArguments().Select(GetSchemaId))}"
+            : ToModelName(type.Name);
+    }
+
+    private static string ToModelName(string name)
+    {
+        return name.EndsWith("DTO", StringComparison.Ordinal) ? $"{name[..^3]}Model" : name;
+    }
 }
