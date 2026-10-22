@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging.Abstractions;
 using TransactionDisputePortal.Application.Common.Mappings;
 using TransactionDisputePortal.Domain.Entities;
 using TransactionDisputePortal.Domain.Enums;
@@ -11,7 +12,7 @@ public static class TestData
 
     public static IMapper CreateMapper()
     {
-        return new MapperConfiguration(configuration => configuration.AddProfile<MappingProfile>()).CreateMapper();
+        return new MapperConfiguration(configuration => configuration.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
     }
 
     public static Customer CreateCustomer(string fullName = "Test Customer")

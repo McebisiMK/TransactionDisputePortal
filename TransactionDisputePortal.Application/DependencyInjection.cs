@@ -10,12 +10,16 @@ namespace TransactionDisputePortal.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection RegisterApplication(this IServiceCollection services)
+    public static IServiceCollection RegisterApplication(this IServiceCollection services, string? licenseKey)
     {
-        services.AddAutoMapper(Assembly.GetExecutingAssembly());
+        services.AddAutoMapper(config => config.LicenseKey = licenseKey, Assembly.GetExecutingAssembly());
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-        services.AddMediatR(config => config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        services.AddMediatR(config =>
+        {
+            config.LicenseKey = licenseKey;
+            config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+        });
         services.AddScoped<ICurrentCustomerService, CurrentCustomerService>();
         return services;
     }

@@ -37,6 +37,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Server=sqlserver,1433;Database=TransactionDisputePortal;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Dispute_Portal_2026!};TrustServerCertificate=True;MultipleActiveResultSets=True;
       Keycloak__MetadataAddress: http://keycloak:8080/realms/transaction-dispute-portal/.well-known/openid-configuration
+      LuckyPennySoftware__LicenseKey: ${LUCKY_PENNY_LICENSE_KEY:-}
     ports:
       - "5000:8080"
     depends_on:

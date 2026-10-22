@@ -21,7 +21,7 @@ try
         .Enrich.FromLogContext());
 
     builder.Services
-     .RegisterApplication()
+     .RegisterApplication(builder.Configuration["LuckyPennySoftware:LicenseKey"])
      .RegisterInfrastructure(builder.Configuration)
      .RegisterAPI(builder.Configuration, builder.Environment);
 
