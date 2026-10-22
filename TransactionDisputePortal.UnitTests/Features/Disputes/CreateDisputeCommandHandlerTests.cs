@@ -125,6 +125,59 @@ public class CreateDisputeCommandHandlerTests
     }
 
     [Test]
+    public async Task Handle_Given_The_Transaction_Already_Has_An_Approved_Dispute_Should_Throw_Domain_Exception_Without_Using_A_Reference()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(UtcNow.AddDays(-10));
+        var approved = transaction.AddDispute(UtcNow.AddDays(-5));
+        approved.StartReview(null, "test.agent", UtcNow.AddDays(-4));
+        approved.Resolve(DisputeOutcome.Approved, "Refunded.", "test.agent", UtcNow.AddDays(-3));
+
+        using var context = await CreateContext(customer);
+        var disputeReferenceGenerator = CreateDisputeReferenceGenerator();
+        var handler = CreateHandler(context, customer.Id, disputeReferenceGenerator);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var act = () => handler.Handle(new CreateDisputeCommand { TransactionId = transaction.Id, Reason = DisputeReason.DuplicateCharge }, CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        await act.Should().ThrowAsync<DomainException>()
+            .WithMessage($"Transaction {transaction.Reference} was already refunded through dispute {approved.Reference} and can't be disputed again.");
+        await disputeReferenceGenerator.DidNotReceiveWithAnyArgs().NextReferenceAsync(default);
+        (await context.Disputes.CountAsync()).Should().Be(1);
+    }
+
+    [TestCase(DisputeOutcome.Rejected)]
+    [TestCase(null)]
+    public async Task Handle_Given_The_Transaction_Only_Has_A_Rejected_Or_Withdrawn_Dispute_Should_Allow_A_New_One(DisputeOutcome? outcome)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(UtcNow.AddDays(-10));
+        var closed = transaction.AddDispute(UtcNow.AddDays(-5));
+        if (outcome is null)
+        {
+            closed.Withdraw(null, "test.customer", UtcNow.AddDays(-4));
+        }
+        else
+        {
+            closed.StartReview(null, "test.agent", UtcNow.AddDays(-4));
+            closed.Resolve(outcome.Value, "Merchant records confirm the charge.", "test.agent", UtcNow.AddDays(-3));
+        }
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new CreateDisputeCommand { TransactionId = transaction.Id, Reason = DisputeReason.DuplicateCharge }, CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.Status.Should().Be(DisputeStatus.Submitted);
+        (await context.Disputes.CountAsync()).Should().Be(2);
+    }
+
+    [Test]
     public async Task Handle_Given_Another_Transaction_Has_An_Open_Dispute_Should_Still_Allow_This_One()
     {
         //------------------------------------- Arrange ------------------------------------------------------

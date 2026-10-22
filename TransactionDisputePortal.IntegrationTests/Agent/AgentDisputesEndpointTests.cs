@@ -125,6 +125,35 @@ public class AgentDisputesEndpointTests
     }
 
     [Test]
+    public async Task Post_Dispute_Given_The_Transaction_Was_Already_Refunded_Should_Return_Conflict_And_Not_Be_Disputable()
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var disputeId = await CreateDispute();
+        using var reviewed = await agentClient.PatchAsJsonAsync($"/api/v1/agent/disputes/{disputeId}/status",
+            new { status = "UnderReview", comment = (string?)null, rowVersion = await GetRowVersion(disputeId) });
+        using var approved = await agentClient.PatchAsJsonAsync($"/api/v1/agent/disputes/{disputeId}/status",
+            new { status = "Approved", comment = "Refunded.", rowVersion = await GetRowVersion(disputeId) });
+
+        var dispute = await GetCustomerDispute(disputeId);
+        var transactionId = dispute.GetProperty("transactionId").GetGuid();
+
+        //------------------------------------- Act     ------------------------------------------------------
+        using var actual = await customerClient.PostAsJsonAsync("/api/v1/disputes", new { transactionId, reason = "DuplicateCharge" });
+        using var transaction = await customerClient.GetAsync($"/api/v1/transactions/{transactionId}");
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        approved.StatusCode.Should().Be(HttpStatusCode.OK);
+        actual.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        actual.Content.Headers.ContentType!.MediaType.Should().Be(ProblemContentType);
+
+        using var body = await ReadJson(actual);
+        body.RootElement.GetProperty("detail").GetString().Should().EndWith($"was already refunded through dispute {dispute.GetProperty("reference").GetString()} and can't be disputed again.");
+
+        using var transactionBody = await ReadJson(transaction);
+        transactionBody.RootElement.GetProperty("isDisputable").GetBoolean().Should().BeFalse();
+    }
+
+    [Test]
     public async Task Patch_Status_Given_A_Stale_Row_Version_Should_Return_Conflict()
     {
         //------------------------------------- Arrange ------------------------------------------------------

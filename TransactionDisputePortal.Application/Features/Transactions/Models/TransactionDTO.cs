@@ -48,7 +48,7 @@ public record TransactionDTO : IMapFrom<Transaction>
             .ForMember(dto => dto.IsDisputable, options => options.MapFrom(transaction =>
                 transaction.Status == TransactionStatus.Posted
                 && transaction.TransactionDate >= disputeWindowStart
-                && !transaction.Disputes.Any(dispute => dispute.Status == DisputeStatus.Submitted || dispute.Status == DisputeStatus.UnderReview)));
+                && !transaction.Disputes.Any(dispute => dispute.Status == DisputeStatus.Submitted || dispute.Status == DisputeStatus.UnderReview || dispute.Status == DisputeStatus.Approved)));
     }
 
     public static Dictionary<string, object> ProjectionParameters(DateTime utcNow) => new()

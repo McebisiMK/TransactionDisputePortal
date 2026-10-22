@@ -105,6 +105,7 @@ Transaction responses include `isDisputable` and `openDisputeId`, so clients don
 - A customer can only dispute their own transactions (`404` otherwise).
 - Only `Posted` transactions can be disputed, and only within 120 days of the transaction date (`409`).
 - A transaction can have only one open (`Submitted` or `UnderReview`) dispute at a time (`409`). This is checked by the handler and enforced by a filtered unique index, so two simultaneous requests can't both succeed.
+- A transaction with an `Approved` dispute has already been refunded and can't be disputed again (`409`). After a `Rejected` or `Withdrawn` dispute, the customer can dispute it again while it is still within the dispute window.
 - Reasons: `UnauthorisedTransaction`, `DuplicateCharge`, `IncorrectAmount`, `GoodsOrServicesNotReceived`, `NotAsDescribed`, `CancelledSubscription`, `RefundNotReceived`, `Other`.
 - Each dispute gets a readable reference such as `DSP-2026-000123`, numbered from a SQL Server sequence.
 - A new dispute starts as `Submitted` with a first entry in its status history, and a simulated "Dispute received" notification is logged.

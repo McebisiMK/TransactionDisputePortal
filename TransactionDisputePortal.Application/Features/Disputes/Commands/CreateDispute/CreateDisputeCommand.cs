@@ -43,6 +43,8 @@ public record CreateDisputeCommand : IRequest<DisputeDTO>
             if (hasOpenDispute)
                 throw OpenDisputeExists(transaction);
 
+            await EnsureNotAlreadyRefunded(transaction, cancellationToken);
+
             var reference = await disputeReferenceGenerator.NextReferenceAsync(cancellationToken);
             var dispute = Dispute.Submit(reference, transaction, customerId, request.Reason!.Value, request.Description,
                 currentUserService.Username ?? "System", timeProvider.GetUtcNow().UtcDateTime);
@@ -59,6 +61,17 @@ public record CreateDisputeCommand : IRequest<DisputeDTO>
             }
 
             return mapper.Map<DisputeDTO>(dispute);
+        }
+
+        private async Task EnsureNotAlreadyRefunded(Transaction transaction, CancellationToken cancellationToken)
+        {
+            var approvedDisputeReference = await applicationDbContext.Disputes
+                                                 .Where(dispute => dispute.TransactionId == transaction.Id && dispute.Status == DisputeStatus.Approved)
+                                                 .Select(dispute => dispute.Reference)
+                                                 .FirstOrDefaultAsync(cancellationToken);
+
+            if (approvedDisputeReference is not null)
+                throw new DomainException($"Transaction {transaction.Reference} was already refunded through dispute {approvedDisputeReference} and can't be disputed again.");
         }
 
         private static DomainException OpenDisputeExists(Transaction transaction) => new($"Transaction {transaction.Reference} already has an open dispute.");

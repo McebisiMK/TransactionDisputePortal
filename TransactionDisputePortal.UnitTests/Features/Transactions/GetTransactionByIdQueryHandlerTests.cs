@@ -130,6 +130,28 @@ public class GetTransactionByIdQueryHandlerTests
         actual.OpenDisputeId.Should().Be(dispute.Id);
     }
 
+    [TestCase(DisputeOutcome.Approved, false)]
+    [TestCase(DisputeOutcome.Rejected, true)]
+    public async Task Handle_Given_A_Transaction_With_A_Resolved_Dispute_Should_Only_Be_Disputable_When_It_Was_Rejected(DisputeOutcome outcome, bool expected)
+    {
+        //------------------------------------- Arrange ------------------------------------------------------
+        var customer = TestData.CreateCustomer();
+        var transaction = customer.AddAccount().AddTransaction(BaseDate.AddDays(-10));
+        var dispute = transaction.AddDispute(BaseDate.AddDays(-5));
+        dispute.StartReview(null, "test.agent", BaseDate.AddDays(-4));
+        dispute.Resolve(outcome, "Merchant replied.", "test.agent", BaseDate.AddDays(-3));
+
+        using var context = await CreateContext(customer);
+        var handler = CreateHandler(context, customer.Id);
+
+        //------------------------------------- Act     ------------------------------------------------------
+        var actual = await handler.Handle(new GetTransactionByIdQuery(transaction.Id), CancellationToken.None);
+
+        //------------------------------------- Assert  ------------------------------------------------------
+        actual.IsDisputable.Should().Be(expected);
+        actual.OpenDisputeId.Should().BeNull();
+    }
+
     [Test]
     public async Task Handle_Given_Time_Has_Moved_On_Past_The_Dispute_Window_Should_No_Longer_Be_Disputable()
     {
