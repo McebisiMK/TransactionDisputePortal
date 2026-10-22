@@ -15,7 +15,7 @@ public static class AuthenticationExtensions
             {
                 options.Authority = configuration["Keycloak:Authority"];
                 options.Audience = configuration["Keycloak:Audience"];
-                options.RequireHttpsMetadata = !environment.IsDevelopment();
+                options.RequireHttpsMetadata = configuration.GetValue("Keycloak:RequireHttpsMetadata", !environment.IsDevelopment());
 
                 var metadataAddress = configuration["Keycloak:MetadataAddress"];
                 if (metadataAddress.IsNotBlank())

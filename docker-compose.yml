@@ -19,8 +19,9 @@ services:
     image: quay.io/keycloak/keycloak:26.0
     command: ["start-dev", "--import-realm"]
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME: http://localhost:8080
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     ports:
@@ -34,7 +35,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Docker
       ConnectionStrings__Default: Server=sqlserver,1433;Database=TransactionDisputePortal;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Dispute_Portal_2026!};TrustServerCertificate=True;MultipleActiveResultSets=True;
       Keycloak__MetadataAddress: http://keycloak:8080/realms/transaction-dispute-portal/.well-known/openid-configuration
       LuckyPennySoftware__LicenseKey: ${LUCKY_PENNY_LICENSE_KEY:-}

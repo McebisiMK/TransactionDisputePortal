@@ -18,9 +18,12 @@ public static class DependencyInjection
         {
             context.ProblemDetails.Instance ??= context.HttpContext.Request.Path;
             context.ProblemDetails.Extensions.TryAdd("traceId", Activity.Current?.Id ?? context.HttpContext.TraceIdentifier);
+            context.ProblemDetails.Extensions.TryAdd("correlationId", context.HttpContext.TraceIdentifier);
         });
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
+        services.RegisterHealthChecks();
+        services.RegisterRateLimiting(configuration);
         services.RegisterCors(configuration);
         services.RegisterAuthentication(configuration, environment);
         services.RegisterAuthorization();

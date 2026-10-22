@@ -1,6 +1,7 @@
 using Serilog;
 using TransactionDisputePortal.API;
 using TransactionDisputePortal.API.Extensions;
+using TransactionDisputePortal.API.Middleware;
 using TransactionDisputePortal.Application;
 using TransactionDisputePortal.Infrastructure;
 using TransactionDisputePortal.Infrastructure.Persistence.DataSeeding;
@@ -14,6 +15,8 @@ try
     Log.Information("Starting TransactionDisputePortal.API");
 
     var builder = WebApplication.CreateBuilder(args);
+
+    builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
@@ -29,11 +32,13 @@ try
 
     await app.Services.SeedDataAsync();
 
+    app.UseMiddleware<CorrelationIdMiddleware>();
+    app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseSerilogRequestLogging();
     app.UseExceptionHandler();
     app.UseStatusCodePages();
 
-    if (app.Environment.IsDevelopment())
+    if (app.Configuration.GetValue<bool>("Swagger:Enabled"))
     {
         app.UseSwagger();
         app.UseSwaggerUI(options =>
@@ -44,14 +49,20 @@ try
         });
     }
 
-    if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
+    if (app.Configuration.GetValue("Hosting:UseHttpsRedirection", true))
+    {
+        app.UseHsts();
+        app.UseHttpsRedirection();
+    }
 
     app.UseRouting();
     app.UseCors(CorsExtensions.PolicyName);
     app.UseAuthentication();
+    app.UseRateLimiter();
     app.UseAuthorization();
 
     app.MapControllers();
+    app.MapHealthCheckEndpoints();
 
     await app.RunAsync();
 }

@@ -1,3 +1,4 @@
+using TransactionDisputePortal.API.Middleware;
 using TransactionDisputePortal.Application.Common.Extensions;
 
 namespace TransactionDisputePortal.API.Extensions;
@@ -24,8 +25,8 @@ public static class CorsExtensions
                     policy.WithOrigins(allowedOrigins)
                           .AllowCredentials()
                           .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-                          .WithHeaders("Content-Type", "Authorization", "Accept", "Origin")
-                          .WithExposedHeaders("Content-Length", "X-Total-Count");
+                          .WithHeaders("Content-Type", "Authorization", "Accept", "Origin", CorrelationIdMiddleware.HeaderName)
+                          .WithExposedHeaders("Content-Length", "X-Total-Count", "Location", "Retry-After", CorrelationIdMiddleware.HeaderName);
                 });
         });
     }

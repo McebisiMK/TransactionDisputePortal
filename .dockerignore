@@ -13,3 +13,7 @@ docker-compose.yml
 keycloak/
 README.md
 **/*.UnitTests/
+**/*.IntegrationTests/
+**/*.API.Client/
+.env
+*.env

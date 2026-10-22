@@ -2,7 +2,9 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
 using TransactionDisputePortal.API.Authorization;
+using TransactionDisputePortal.API.Extensions;
 using TransactionDisputePortal.API.Models;
 using TransactionDisputePortal.Application.Common.Models;
 using TransactionDisputePortal.Application.Features.Disputes.Commands.CreateDispute;
@@ -24,11 +26,13 @@ public class DisputesController(ISender sender) : ControllerBase
     private readonly ISender sender = sender;
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitingExtensions.WritePolicy)]
     [Consumes("application/json")]
     [ProducesResponseType<DisputeDTO>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<DisputeDTO>> CreateDispute([FromBody] CreateDisputeCommand command, CancellationToken cancellationToken)
     {
         var dispute = await sender.Send(command, cancellationToken);
@@ -53,10 +57,12 @@ public class DisputesController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{id:guid}/withdraw")]
+    [EnableRateLimiting(RateLimitingExtensions.WritePolicy)]
     [ProducesResponseType<DisputeDTO>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<DisputeDTO>> WithdrawDispute(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] WithdrawDisputeRequest? request,
         CancellationToken cancellationToken)
     {

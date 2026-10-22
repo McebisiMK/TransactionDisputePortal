@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -17,13 +18,18 @@ namespace TransactionDisputePortal.IntegrationTests.TestSupport;
 /// Runs the real API pipeline (routing, filters, model binding, exception handling) with an in-memory database
 /// and <see cref="TestAuthenticationHandler"/> in place of Keycloak.
 /// </summary>
-public class ApiFactory : WebApplicationFactory<Program>
+public class ApiFactory(int writePermitLimit = 1000) : WebApplicationFactory<Program>
 {
+    public const string UnreachableKeycloakMetadataAddress = "http://127.0.0.1:1/realms/test/.well-known/openid-configuration";
+
+    private readonly int writePermitLimit = writePermitLimit;
     private readonly string databaseName = Guid.NewGuid().ToString();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.UseSetting("RateLimiting:Writes:PermitLimit", writePermitLimit.ToString(CultureInfo.InvariantCulture));
+        builder.UseSetting("Keycloak:MetadataAddress", UnreachableKeycloakMetadataAddress);
 
         builder.ConfigureTestServices(services =>
         {
