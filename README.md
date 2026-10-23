@@ -27,7 +27,6 @@ This repository holds the **.NET 10 API** and the **Docker Compose** setup for t
 - [Database migrations](#database-migrations)
 - [TypeScript API client](#typescript-api-client)
 - [Design decisions](#design-decisions)
-- [Known limitations and next steps](#known-limitations-and-next-steps)
 
 ## Quick start
 
@@ -324,12 +323,3 @@ Dates are ISO strings, enums are string literal unions, and every method takes a
 - **Lookups built from the enums:** `GET /lookups` returns the reasons and statuses with display names, so the web app doesn't hard-code them. Statuses drive the workflow in code, so they stay enums. If reasons need to change without a deploy, they can move to a table behind the same endpoint.
 - **A generated TypeScript client:** the web app is typed against the real OpenAPI contract, so an API change that breaks the UI fails the web build.
 - **The API tells the UI what is allowed:** `isDisputable` and `openDisputeId` on transactions, so the dispute rules aren't duplicated in the browser.
-
-## Known limitations and next steps
-
-- **No CI pipeline yet.** Next step: GitHub Actions to build, run both test suites, and build the Docker images on each push.
-- **Integration tests use EF Core InMemory**, which doesn't generate row versions, run SQL Server sequences or enforce the filtered unique index. The handler-level checks (including stale `rowVersion`) are tested, and the database-level guarantees were tested manually against SQL Server. Next step: Testcontainers for SQL Server.
-- **Notifications are simulated** (logged). A real implementation would publish the domain events to a queue for an email or SMS service.
-- **Compose has no health check for the API container,** because the runtime image has no `curl`. `/health` is ready for an orchestrator such as Kubernetes probes.
-- **Keycloak runs in `start-dev` mode** with the realm imported from a file. Production would use `start` with HTTPS, a database and managed secrets.
-- **The full stack needs both repositories side by side,** because compose builds the web app from `../transaction-dispute-portal-web`. Publishing images to a registry would remove that.
