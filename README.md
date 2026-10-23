@@ -1,5 +1,7 @@
 # Transaction Dispute Portal
 
+[![CI](https://github.com/McebisiMK/TransactionDisputePortal/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/McebisiMK/TransactionDisputePortal/actions/workflows/ci.yml)
+
 A full-stack system where bank customers view their transactions, dispute the ones they don't recognise, and follow every dispute they've raised. Dispute agents work a queue of open disputes, review them and approve or reject them, and the customer sees each decision in their dispute history.
 
 This repository holds the **.NET 10 API** and the **Docker Compose** setup for the whole stack. The React web app lives in [`transaction-dispute-portal-web`](https://github.com/McebisiMK/transaction-dispute-portal-web).
